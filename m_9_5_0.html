@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>재고목록 - KSI OSP</title>
+    <link rel="stylesheet" href="./css/mobile-common.css">
+    <style>
+        body { background: #f5f5f5; padding-bottom: 70px; }
+        .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: white; }
+        .sub-header { position: relative; background: white; padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; }
+        .btn-back { background: none; border: none; font-size: 20px; color: #333; padding: 5px; }
+        .sub-header-title { font-size: 17px; font-weight: bold; flex: 1; }
+        .sub-header-actions { display: flex; gap: 8px; }
+        .select-btn { padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 6px; font-size: 13px; color: #666; }
+        .select-btn.active { background: #1a73e8; color: white; border-color: #1a73e8; }
+        .tabs { display: flex; background: white; border-bottom: 1px solid #eee; }
+        .tab-btn { flex: 1; padding: 12px 8px; border: none; background: none; font-size: 14px; color: #666; font-weight: 500; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+        .search-filter { background: white; padding: 10px 12px; border-bottom: 1px solid #eee; }
+        .filter-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .filter-btn { padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 14px; font-size: 13px; color: #666; }
+        .filter-btn.active { background: #1a73e8; color: white; border-color: #1a73e8; }
+        .main-content { margin-top: 180px; padding: 15px; }
+        .main-content.select-mode { padding-bottom: 80px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .stock-card { background: white; border-radius: 10px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); position: relative; }
+        .stock-card.selected { border: 2px solid #1a73e8; background: #e3f2fd; }
+        .stock-card-checkbox { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border: 2px solid #ddd; border-radius: 50%; display: none; align-items: center; justify-content: center; background: white; }
+        .stock-card-checkbox.show { display: flex; }
+        .stock-card-checkbox.checked { background: #1a73e8; border-color: #1a73e8; color: white; }
+        .stock-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; padding-right: 30px; }
+        .stock-card-title { font-weight: bold; font-size: 15px; margin-bottom: 3px; }
+        .stock-card-subtitle { font-size: 13px; color: #888; }
+        .stock-card-badge { padding: 4px 8px; border-radius: 10px; font-size: 12px; font-weight: 500; position: absolute; top: 14px; right: 14px; }
+        .stock-card-badge.normal { background: #e8f5e9; color: #2e7d32; }
+        .stock-card-badge.low { background: #fff3e0; color: #e65100; }
+        .stock-card-badge.critical { background: #ffebee; color: #c62828; }
+        .stock-card-badge.deadline { background: #fce4ec; color: #c2185b; }
+        .stock-card-info { display: flex; gap: 15px; margin-bottom: 12px; font-size: 14px; }
+        .stock-info-item { display: flex; align-items: center; gap: 5px; }
+        .stock-info-label { color: #888; }
+        .stock-info-value { font-weight: 500; }
+        .stock-card-actions { display: flex; gap: 8px; }
+        .stock-card-actions .btn { flex: 1; padding: 9px; font-size: 13px; border-radius: 6px; border: 1px solid #ddd; background: white; color: #333; }
+        .stock-card-actions .btn-primary { background: #1a73e8; color: #ffffff !important; border-color: #1a73e8; }
+        .stock-card-actions .btn-warning { background: #ff9800; color: #ffffff !important; border-color: #ff9800; }
+        .stock-card-actions .btn-success { background: #4caf50; color: #ffffff !important; border-color: #4caf50; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #eee; z-index: 100; height: 56px; }
+        .nav-item { flex: 1; padding: 8px 5px; text-align: center; font-size: 11px; color: #666; text-decoration: none; }
+        .nav-icon { font-size: 20px; margin-bottom: 2px; }
+        
+        .fab-container { position: fixed; bottom: 75px; right: 15px; z-index: 90; }
+        .fab-btn { width: 54px; height: 54px; border-radius: 50%; background: #1a73e8; color: white; border: none; font-size: 26px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.3s; }
+        .fab-btn.open { transform: rotate(45deg); }
+        .fab-menu { position: absolute; bottom: 64px; right: 0; display: none; flex-direction: column; gap: 10px; align-items: flex-end; }
+        .fab-menu.show { display: flex; }
+        .fab-menu-item { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: white; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); white-space: nowrap; font-size: 14px; animation: fadeIn 0.2s; cursor: pointer; }
+        .fab-menu-item:active { background: #f5f5f5; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .select-actions { position: fixed; bottom: 56px; left: 0; right: 0; background: white; border-top: 1px solid #eee; padding: 10px 12px; display: none; gap: 8px; z-index: 95; }
+        .select-actions.show { display: flex; }
+        .select-actions .btn { flex: 1; padding: 11px 8px; font-size: 12px; border-radius: 6px; font-weight: 600; }
+        .select-count { font-size: 13px; color: #666; padding: 8px 0; text-align: center; }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; width: 90%; max-width: 340px; border-radius: 12px; overflow: hidden; }
+        .modal-header { padding: 14px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 17px; font-weight: bold; }
+        .modal-close { background: none; border: none; font-size: 24px; color: #666; }
+        .modal-body { padding: 15px; max-height: 60vh; overflow-y: auto; }
+        .modal-footer { padding: 12px 15px; border-top: 1px solid #eee; display: flex; gap: 8px; }
+        .modal-footer .btn { flex: 1; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 14px; border: 1px solid #ddd; background: white; color: #333; }
+        .modal-footer .btn-success { background: #4caf50; color: #fff !important; border-color: #4caf50; }
+        .modal-footer .btn-primary { background: #1a73e8; color: #fff !important; border-color: #1a73e8; }
+        .modal-footer .btn-warning { background: #ff9800; color: #fff !important; border-color: #ff9800; }
+        .detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { color: #666; }
+        .detail-value { font-weight: 500; }
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; color: #666; margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 11px; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; box-sizing: border-box; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .empty-state { padding: 40px 20px; text-align: center; color: #888; }
+        .empty-icon { font-size: 48px; margin-bottom: 10px; }
+        .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 6px; z-index: 400; opacity: 0; transition: opacity 0.3s; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="fixed-header">
+        <div class="sub-header">
+            <button class="btn-back" onclick="location.href='m_9_1_0.html'">←</button>
+            <div class="sub-header-title">📋 재고목록</div>
+            <div class="sub-header-actions">
+                <button class="select-btn" id="selectModeBtn" onclick="toggleSelectMode()">선택</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="product" onclick="switchTab('product')">📦 완제품</button>
+            <button class="tab-btn" data-tab="supply" onclick="switchTab('supply')">🔧 부자재</button>
+            <button class="tab-btn" data-tab="packaging" onclick="switchTab('packaging')">📦 포장재</button>
+        </div>
+        <div class="search-filter">
+            <input type="text" class="form-control" id="searchInput" placeholder="🔍 품목코드, 품명, 거래처 검색" oninput="filterStock()" style="padding:10px 12px;font-size:15px;">
+            <div class="filter-row" id="filterRow">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">전체</button>
+                <button class="filter-btn" data-filter="normal" onclick="setFilter('normal')">정상</button>
+                <button class="filter-btn" data-filter="low" onclick="setFilter('low')">부족</button>
+                <button class="filter-btn" data-filter="critical" onclick="setFilter('critical')">긴급</button>
+                <button class="filter-btn" data-filter="deadline" onclick="setFilter('deadline')">기한임박</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content" id="mainContent">
+        <div class="tab-content active" id="tab-product"><div id="productList"></div></div>
+        <div class="tab-content" id="tab-supply"><div id="supplyList"></div></div>
+        <div class="tab-content" id="tab-packaging"><div id="packagingList"></div></div>
+    </div>
+    
+    <div class="fab-container" id="fabContainer">
+        <div class="fab-menu" id="fabMenu">
+            <div class="fab-menu-item" onclick="openQuickAdd()">📦 빠른 품목 등록</div>
+        </div>
+        <button class="fab-btn" id="fabBtn" onclick="toggleFab()">+</button>
+    </div>
+    
+    <div class="select-actions" id="selectActions">
+        <button class="btn btn-success" onclick="bulkMove()">🔄 이동</button>
+        <button class="btn btn-warning" onclick="bulkOutbound()">📤 출고</button>
+        <button class="btn btn-primary" onclick="bulkDeadline()">📅 기한수정</button>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="m_0_0_3.html" class="nav-item"><div class="nav-icon">🏠</div>홈</a>
+        <a href="m_3_1_0.html" class="nav-item"><div class="nav-icon">📋</div>주문</a>
+        <a href="m_5_1_1.html" class="nav-item"><div class="nav-icon">🖨️</div>인쇄</a>
+        <a href="m_6_1_1.html" class="nav-item"><div class="nav-icon">📚</div>제본</a>
+        <a href="m_7_1_1.html" class="nav-item"><div class="nav-icon">📦</div>출고</a>
+    </div>
+    
+    <!-- 상세 모달 -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">📦 품목 상세</span><button class="modal-close" onclick="closeModal('detailModal')">×</button></div>
+            <div class="modal-body" id="detailContent"></div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="goToMoveFromModal()">이동</button>
+                <button class="btn btn-primary" onclick="goToInboundFromModal()">입고</button>
+                <button class="btn btn-warning" onclick="goToOutboundFromModal()">출고</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 단일 품목 위치 이동 모달 -->
+    <div class="modal-overlay" id="singleMoveModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">🔄 위치 이동</span><button class="modal-close" onclick="closeModal('singleMoveModal')">×</button></div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">품목명</label>
+                    <div id="singleMoveItemName" style="font-weight:bold;font-size:15px;padding:8px 0;"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">현재 위치</label>
+                    <div id="singleMoveCurrentLoc" style="color:#888;padding:8px 0;"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">이동할 위치 *</label>
+                    <select class="form-control" id="singleMoveLocation">
+                        <option value="">선택하세요</option>
+                        <option value="A-1-1">A동 1구역 1열</option>
+                        <option value="A-1-2">A동 1구역 2열</option>
+                        <option value="A-2-1">A동 2구역 1열</option>
+                        <option value="A-2-2">A동 2구역 2열</option>
+                        <option value="A-3-1">A동 3구역 1열</option>
+                        <option value="A-3-2">A동 3구역 2열</option>
+                        <option value="B-1-1">B동 1구역 1열</option>
+                        <option value="B-2-1">B동 2구역 1열</option>
+                        <option value="B-5-1">B동 5구역 1열</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('singleMoveModal')">취소</button>
+                <button class="btn btn-success" onclick="confirmSingleMove()">이동</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 빠른 품목 등록 모달 -->
+    <div class="modal-overlay" id="quickAddModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">📦 빠른 품목 등록</span><button class="modal-close" onclick="closeModal('quickAddModal')">×</button></div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">품목 유형 *</label>
+                    <select class="form-control" id="quickType">
+                        <option value="product">완제품</option>
+                        <option value="supply">부자재</option>
+                        <option value="packaging">포장재</option>
+                    </select>
+                </div>
+                <div class="form-group"><label class="form-label">품목명 *</label><input type="text" class="form-control" id="quickName" placeholder="품목명 입력"></div>
+                <div class="form-group"><label class="form-label">ISBN / 제작번호 / 바코드</label><input type="text" class="form-control" id="quickCode" placeholder="코드 입력"></div>
+                <div class="form-group" id="quickCustomerGroup"><label class="form-label">거래처</label><input type="text" class="form-control" id="quickCustomer" placeholder="거래처 입력"></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div class="form-group"><label class="form-label">수량 *</label><input type="number" class="form-control" id="quickQty" placeholder="0"></div>
+                    <div class="form-group"><label class="form-label">단위</label>
+                        <select class="form-control" id="quickUnit">
+                            <option value="부">부</option>
+                            <option value="kg">kg</option>
+                            <option value="개">개</option>
+                            <option value="L">L</option>
+                            <option value="롤">롤</option>
+                            <option value="장">장</option>
+                            <option value="통">통</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">보관위치</label>
+                    <div class="form-row">
+                        <select class="form-control" id="quickLocBuilding">
+                            <option value="">동</option>
+                            <option value="A">A동</option>
+                            <option value="B">B동</option>
+                        </select>
+                        <select class="form-control" id="quickLocZone">
+                            <option value="">구역</option>
+                            <option value="1">1구역</option>
+                            <option value="2">2구역</option>
+                            <option value="3">3구역</option>
+                            <option value="4">4구역</option>
+                            <option value="5">5구역</option>
+                        </select>
+                        <select class="form-control" id="quickLocShelf">
+                            <option value="">선반</option>
+                            <option value="1">1열</option>
+                            <option value="2">2열</option>
+                            <option value="3">3열</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('quickAddModal')">취소</button>
+                <button class="btn btn-primary" onclick="submitQuickAdd()">등록</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 일괄 이동 모달 -->
+    <div class="modal-overlay" id="bulkMoveModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">🔄 일괄 위치 이동</span><button class="modal-close" onclick="closeModal('bulkMoveModal')">×</button></div>
+            <div class="modal-body">
+                <div class="select-count" id="moveCount">0건 선택됨</div>
+                <div class="form-group">
+                    <label class="form-label">이동할 위치 *</label>
+                    <select class="form-control" id="bulkMoveLocation">
+                        <option value="">선택하세요</option>
+                        <option value="A-1">A동 1구역</option>
+                        <option value="A-2">A동 2구역</option>
+                        <option value="A-3">A동 3구역</option>
+                        <option value="B-1">B동 1구역</option>
+                        <option value="B-2">B동 2구역</option>
+                        <option value="B-3">B동 3구역</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('bulkMoveModal')">취소</button>
+                <button class="btn btn-success" onclick="confirmBulkMove()">이동</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 일괄 출고 모달 -->
+    <div class="modal-overlay" id="bulkOutModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">📤 일괄 출고</span><button class="modal-close" onclick="closeModal('bulkOutModal')">×</button></div>
+            <div class="modal-body">
+                <div class="select-count" id="outCount">0건 선택됨</div>
+                <div class="form-group">
+                    <label class="form-label">출고유형 *</label>
+                    <select class="form-control" id="bulkOutType">
+                        <option value="고객출고">고객출고</option>
+                        <option value="샘플출고">샘플출고</option>
+                        <option value="내부이동">내부이동</option>
+                        <option value="폐기">폐기</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('bulkOutModal')">취소</button>
+                <button class="btn btn-warning" onclick="confirmBulkOut()">출고</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 일괄 기한 수정 모달 -->
+    <div class="modal-overlay" id="bulkDeadlineModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">📅 일괄 기한 수정</span><button class="modal-close" onclick="closeModal('bulkDeadlineModal')">×</button></div>
+            <div class="modal-body">
+                <div class="select-count" id="deadlineCount">0건 선택됨</div>
+                <div class="form-group">
+                    <label class="form-label">새로운 보관기한 *</label>
+                    <input type="date" class="form-control" id="bulkDeadlineDate">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('bulkDeadlineModal')">취소</button>
+                <button class="btn btn-primary" onclick="confirmBulkDeadline()">수정</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+var currentTab = 'product', currentFilter = 'all', selectedItem = null, fabOpen = false;
+var selectMode = false, selectedItems = [];
+var moveTargetItemId = null;
+
+var productData = [
+    { id: '28646', name: '문법 탄탄 Writing 2', customer: 'Abc출판사', stock: 800, unit: '부', location: 'A-1-2', deadline: '2025-02-15', status: 'normal' },
+    { id: '28645', name: '한국사 연구방법론', customer: '서울대출판부', stock: 500, unit: '부', location: 'A-2-1', deadline: '2025-02-20', status: 'normal' },
+    { id: '28640', name: '2025 교육백서', customer: '교육진흥원', stock: 2500, unit: '부', location: 'B-5-1', deadline: '2025-01-08', status: 'deadline' },
+    { id: '28638', name: '민법총론 개정판', customer: '법률출판사', stock: 1500, unit: '부', location: 'A-3-2', deadline: '2025-01-12', status: 'deadline' },
+    { id: '28635', name: '수능특강 국어영역', customer: 'EBS', stock: 3200, unit: '부', location: 'A-1-1', deadline: '2025-01-15', status: 'deadline' }
+];
+
+var supplyData = [
+    { id: 'INK-C', name: 'Cyan 잉크', stock: 12, safety: 5, unit: 'kg', location: 'B-1-1', status: 'normal' },
+    { id: 'INK-M', name: 'Magenta 잉크', stock: 2, safety: 5, unit: 'kg', location: 'B-1-1', status: 'low' },
+    { id: 'INK-Y', name: 'Yellow 잉크', stock: 15, safety: 5, unit: 'kg', location: 'B-1-2', status: 'normal' },
+    { id: 'INK-K', name: 'Black 잉크', stock: 8, safety: 10, unit: 'kg', location: 'B-1-2', status: 'normal' },
+    { id: 'ADH-PUR', name: 'PUR 접착제', stock: 8, safety: 10, unit: 'kg', location: 'B-2-1', status: 'low' },
+    { id: 'ADH-HM', name: '핫멜트 접착제', stock: 25, safety: 10, unit: 'kg', location: 'B-2-1', status: 'normal' },
+    { id: 'COAT-G', name: '광택 코팅액', stock: 18, safety: 8, unit: 'L', location: 'B-2-2', status: 'normal' },
+    { id: 'COAT-M', name: '무광 코팅액', stock: 5, safety: 8, unit: 'L', location: 'B-2-2', status: 'low' }
+];
+
+var packagingData = [
+    { id: 'BOX-S', name: '소형 박스', stock: 250, safety: 100, unit: '개', location: 'A-3-1', status: 'normal' },
+    { id: 'BOX-M', name: '중형 박스', stock: 45, safety: 100, unit: '개', location: 'A-3-1', status: 'low' },
+    { id: 'BOX-L', name: '대형 박스', stock: 120, safety: 50, unit: '개', location: 'A-3-2', status: 'normal' },
+    { id: 'TAPE-B', name: '포장테이프(갈색)', stock: 80, safety: 30, unit: '롤', location: 'A-3-3', status: 'normal' },
+    { id: 'TAPE-T', name: '포장테이프(투명)', stock: 25, safety: 30, unit: '롤', location: 'A-3-3', status: 'low' },
+    { id: 'WRAP-S', name: '스트레치필름', stock: 45, safety: 20, unit: '롤', location: 'A-4-1', status: 'normal' },
+    { id: 'BUBBLE', name: '에어캡(뽁뽁이)', stock: 15, safety: 10, unit: '롤', location: 'A-4-1', status: 'normal' },
+    { id: 'PAD-P', name: '종이완충재', stock: 200, safety: 100, unit: '장', location: 'A-4-2', status: 'normal' }
+];
+
+function initPage() {
+    // 재고조정 결과 반영
+    applyAdjustments();
+    
+    var urlParams = new URLSearchParams(window.location.search);
+    var tab = urlParams.get('tab');
+    var filter = urlParams.get('filter');
+    var detail = urlParams.get('detail');
+    
+    if (tab) switchTab(tab);
+    if (filter) setFilter(filter);
+    renderAll();
+    
+    if (detail) { setTimeout(function() { openDetail(detail); }, 300); }
+}
+
+function applyAdjustments() {
+    // localStorage에서 재고조정 이력 가져오기
+    var adjustmentHistory = [];
+    try {
+        adjustmentHistory = JSON.parse(localStorage.getItem('stockAdjustmentHistory') || '[]');
+    } catch(e) {}
+    
+    // 각 조정 내역 반영
+    for (var i = 0; i < adjustmentHistory.length; i++) {
+        var adj = adjustmentHistory[i];
+        
+        // 완제품에서 찾기
+        for (var j = 0; j < productData.length; j++) {
+            if (productData[j].id === adj.id) {
+                productData[j].stock = adj.newStock;
+                break;
+            }
+        }
+        
+        // 부자재에서 찾기
+        for (var k = 0; k < supplyData.length; k++) {
+            if (supplyData[k].id === adj.id) {
+                supplyData[k].stock = adj.newStock;
+                // 안전재고 대비 상태 업데이트
+                supplyData[k].status = supplyData[k].stock < supplyData[k].safety ? 'low' : 'normal';
+                break;
+            }
+        }
+        
+        // 포장재에서 찾기
+        for (var l = 0; l < packagingData.length; l++) {
+            if (packagingData[l].id === adj.id) {
+                packagingData[l].stock = adj.newStock;
+                // 안전재고 대비 상태 업데이트
+                packagingData[l].status = packagingData[l].stock < packagingData[l].safety ? 'low' : 'normal';
+                break;
+            }
+        }
+    }
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.tab === tab); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.toggle('active', c.id === 'tab-' + tab); });
+    updateFilterButtons();
+    renderAll();
+    // 부자재/포장재 탭에서는 FAB 숨김
+    var fabContainer = document.getElementById('fabContainer');
+    if (tab === 'product') {
+        fabContainer.style.display = 'block';
+    } else {
+        fabContainer.style.display = 'none';
+    }
+}
+
+function updateFilterButtons() {
+    var filterRow = document.getElementById('filterRow');
+    if (currentTab === 'product') {
+        filterRow.innerHTML = '<button class="filter-btn' + (currentFilter === 'all' ? ' active' : '') + '" data-filter="all" onclick="setFilter(\'all\')">전체</button>' +
+            '<button class="filter-btn' + (currentFilter === 'normal' ? ' active' : '') + '" data-filter="normal" onclick="setFilter(\'normal\')">정상</button>' +
+            '<button class="filter-btn' + (currentFilter === 'deadline' ? ' active' : '') + '" data-filter="deadline" onclick="setFilter(\'deadline\')">기한임박</button>';
+    } else {
+        filterRow.innerHTML = '<button class="filter-btn' + (currentFilter === 'all' ? ' active' : '') + '" data-filter="all" onclick="setFilter(\'all\')">전체</button>' +
+            '<button class="filter-btn' + (currentFilter === 'normal' ? ' active' : '') + '" data-filter="normal" onclick="setFilter(\'normal\')">정상</button>' +
+            '<button class="filter-btn' + (currentFilter === 'low' ? ' active' : '') + '" data-filter="low" onclick="setFilter(\'low\')">부족</button>';
+    }
+}
+
+function setFilter(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.filter === filter); });
+    renderAll();
+}
+
+function filterStock() { renderAll(); }
+
+function renderAll() {
+    var keyword = document.getElementById('searchInput').value.toLowerCase();
+    renderList('productList', productData, keyword, true);
+    renderList('supplyList', supplyData, keyword, false);
+    renderList('packagingList', packagingData, keyword, false);
+}
+
+function renderList(containerId, data, keyword, isProduct) {
+    var filtered = data.filter(function(item) {
+        var matchKeyword = !keyword || item.id.toLowerCase().indexOf(keyword) !== -1 || item.name.toLowerCase().indexOf(keyword) !== -1 || (item.customer && item.customer.toLowerCase().indexOf(keyword) !== -1);
+        var matchFilter = currentFilter === 'all' || item.status === currentFilter;
+        return matchKeyword && matchFilter;
+    });
+    
+    var statusLabels = { normal: '정상', low: '부족', critical: '긴급', deadline: '기한임박' };
+    
+    document.getElementById(containerId).innerHTML = filtered.length === 0 ? '<div class="empty-state"><div class="empty-icon">📦</div><div>검색 결과가 없습니다</div></div>' :
+        filtered.map(function(item) {
+            var titleText = isProduct ? item.id + ' | ' + item.name : item.name;
+            var subtitleText = isProduct ? item.customer : item.id;
+            var isSelected = selectedItems.indexOf(item.id) !== -1;
+            var cardClass = 'stock-card' + (isSelected ? ' selected' : '');
+            var checkboxClass = 'stock-card-checkbox' + (selectMode ? ' show' : '') + (isSelected ? ' checked' : '');
+            
+            return '<div class="' + cardClass + '" onclick="handleCardClick(\'' + item.id + '\')">' +
+                '<div class="' + checkboxClass + '">' + (isSelected ? '✓' : '') + '</div>' +
+                '<span class="stock-card-badge ' + item.status + '">' + statusLabels[item.status] + '</span>' +
+                '<div class="stock-card-header"><div><div class="stock-card-title">' + titleText + '</div><div class="stock-card-subtitle">' + subtitleText + '</div></div></div>' +
+                '<div class="stock-card-info"><div class="stock-info-item"><span class="stock-info-label">재고:</span><span class="stock-info-value">' + item.stock.toLocaleString() + item.unit + '</span></div>' + (item.location ? '<div class="stock-info-item"><span class="stock-info-label">위치:</span><span class="stock-info-value">' + item.location + '</span></div>' : '') + '</div>' +
+                (selectMode ? '' : '<div class="stock-card-actions"><button class="btn" onclick="event.stopPropagation();openDetail(\'' + item.id + '\')">상세</button><button class="btn btn-success" onclick="event.stopPropagation();openMoveModal(\'' + item.id + '\')">이동</button><button class="btn btn-primary" onclick="event.stopPropagation();goToInbound(\'' + item.id + '\')">입고</button><button class="btn btn-warning" onclick="event.stopPropagation();goToOutbound(\'' + item.id + '\')">출고</button></div>') +
+                '</div>';
+        }).join('');
+}
+
+function handleCardClick(itemId) {
+    if (selectMode) { toggleItemSelection(itemId); }
+}
+
+function toggleSelectMode() {
+    selectMode = !selectMode;
+    selectedItems = [];
+    document.getElementById('selectModeBtn').classList.toggle('active', selectMode);
+    document.getElementById('selectModeBtn').textContent = selectMode ? '취소' : '선택';
+    document.getElementById('mainContent').classList.toggle('select-mode', selectMode);
+    document.getElementById('selectActions').classList.toggle('show', selectMode);
+    document.getElementById('fabContainer').style.display = selectMode ? 'none' : 'block';
+    renderAll();
+}
+
+function toggleItemSelection(itemId) {
+    var idx = selectedItems.indexOf(itemId);
+    if (idx > -1) { selectedItems.splice(idx, 1); } else { selectedItems.push(itemId); }
+    renderAll();
+}
+
+function openDetail(itemId) {
+    var allData = productData.concat(supplyData).concat(packagingData);
+    var item = null;
+    for (var i = 0; i < allData.length; i++) { if (allData[i].id === itemId) { item = allData[i]; break; } }
+    if (!item) return;
+    selectedItem = item;
+    var statusLabels = { normal: '정상', low: '부족', critical: '긴급', deadline: '기한임박' };
+    document.getElementById('detailContent').innerHTML = 
+        '<div class="detail-row"><span class="detail-label">품목코드</span><span class="detail-value">' + item.id + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">품목명</span><span class="detail-value">' + item.name + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">현재재고</span><span class="detail-value" style="color:#1a73e8;">' + item.stock.toLocaleString() + item.unit + '</span></div>' +
+        (item.customer ? '<div class="detail-row"><span class="detail-label">거래처</span><span class="detail-value">' + item.customer + '</span></div>' : '') +
+        (item.location ? '<div class="detail-row"><span class="detail-label">보관위치</span><span class="detail-value">' + item.location + '</span></div>' : '') +
+        (item.deadline ? '<div class="detail-row"><span class="detail-label">보관기한</span><span class="detail-value">' + item.deadline + '</span></div>' : '') +
+        '<div class="detail-row"><span class="detail-label">상태</span><span class="detail-value">' + statusLabels[item.status] + '</span></div>';
+    document.getElementById('detailModal').classList.add('show');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function openMoveModal(itemId) {
+    var allData = productData.concat(supplyData).concat(packagingData);
+    var item = null;
+    for (var i = 0; i < allData.length; i++) { if (allData[i].id === itemId) { item = allData[i]; break; } }
+    if (!item) return;
+    moveTargetItemId = itemId;
+    document.getElementById('singleMoveItemName').textContent = item.name;
+    document.getElementById('singleMoveCurrentLoc').textContent = item.location || '미지정';
+    document.getElementById('singleMoveLocation').value = '';
+    document.getElementById('singleMoveModal').classList.add('show');
+}
+
+function confirmSingleMove() {
+    var newLoc = document.getElementById('singleMoveLocation').value;
+    if (!newLoc) { showToast('이동할 위치를 선택해주세요'); return; }
+    
+    var allData = productData.concat(supplyData).concat(packagingData);
+    for (var i = 0; i < allData.length; i++) {
+        if (allData[i].id === moveTargetItemId) { allData[i].location = newLoc; break; }
+    }
+    
+    showToast('위치가 ' + newLoc + '(으)로 이동되었습니다');
+    closeModal('singleMoveModal');
+    renderAll();
+}
+
+function goToInbound(id) {
+    var allData = productData.concat(supplyData).concat(packagingData);
+    var item = null;
+    for (var i = 0; i < allData.length; i++) { if (allData[i].id === id) { item = allData[i]; break; } }
+    if (item) {
+        var itemData = encodeURIComponent(JSON.stringify(item));
+        location.href = 'm_9_2_0.html?addItem=' + itemData;
+    } else {
+        location.href = 'm_9_2_0.html?code=' + id;
+    }
+}
+function goToOutbound(id) {
+    var allData = productData.concat(supplyData).concat(packagingData);
+    var item = null;
+    for (var i = 0; i < allData.length; i++) { if (allData[i].id === id) { item = allData[i]; break; } }
+    if (item) {
+        var itemData = encodeURIComponent(JSON.stringify(item));
+        location.href = 'm_9_3_0.html?addItem=' + itemData;
+    } else {
+        location.href = 'm_9_3_0.html?code=' + id;
+    }
+}
+function goToMoveFromModal() { if (selectedItem) { closeModal('detailModal'); openMoveModal(selectedItem.id); } }
+function goToInboundFromModal() { if (selectedItem) { closeModal('detailModal'); goToInbound(selectedItem.id); } }
+function goToOutboundFromModal() { if (selectedItem) { closeModal('detailModal'); goToOutbound(selectedItem.id); } }
+
+function toggleFab() {
+    fabOpen = !fabOpen;
+    document.getElementById('fabBtn').classList.toggle('open', fabOpen);
+    document.getElementById('fabMenu').classList.toggle('show', fabOpen);
+}
+
+function openQuickAdd() {
+    toggleFab();
+    document.getElementById('quickType').value = currentTab;
+    document.getElementById('quickName').value = '';
+    document.getElementById('quickCode').value = '';
+    document.getElementById('quickCustomer').value = '';
+    document.getElementById('quickQty').value = '';
+    document.getElementById('quickUnit').value = currentTab === 'product' ? '부' : (currentTab === 'supply' ? 'kg' : '개');
+    document.getElementById('quickLocBuilding').value = '';
+    document.getElementById('quickLocZone').value = '';
+    document.getElementById('quickLocShelf').value = '';
+    document.getElementById('quickCustomerGroup').style.display = currentTab === 'product' ? 'block' : 'none';
+    document.getElementById('quickAddModal').classList.add('show');
+}
+
+document.getElementById('quickType').addEventListener('change', function() {
+    var type = this.value;
+    document.getElementById('quickUnit').value = type === 'product' ? '부' : (type === 'supply' ? 'kg' : '개');
+    document.getElementById('quickCustomerGroup').style.display = type === 'product' ? 'block' : 'none';
+});
+
+function submitQuickAdd() {
+    var type = document.getElementById('quickType').value;
+    var name = document.getElementById('quickName').value.trim();
+    var code = document.getElementById('quickCode').value.trim();
+    var customer = document.getElementById('quickCustomer').value.trim();
+    var qty = parseInt(document.getElementById('quickQty').value);
+    var unit = document.getElementById('quickUnit').value.trim();
+    var locB = document.getElementById('quickLocBuilding').value;
+    var locZ = document.getElementById('quickLocZone').value;
+    var locS = document.getElementById('quickLocShelf').value;
+    
+    if (!name || !qty) { showToast('품목명과 수량을 입력하세요'); return; }
+    
+    var location = '';
+    if (locB && locZ && locS) { location = locB + '-' + locZ + '-' + locS; }
+    
+    var newItem = {
+        id: code || ('NEW-' + Date.now()),
+        name: name,
+        stock: qty,
+        unit: unit || '개',
+        location: location,
+        status: 'normal'
+    };
+    
+    if (type === 'product') {
+        newItem.customer = customer || '';
+        newItem.deadline = '';
+        productData.unshift(newItem);
+    } else if (type === 'supply') {
+        newItem.safety = Math.floor(qty * 0.3);
+        supplyData.unshift(newItem);
+    } else {
+        newItem.safety = Math.floor(qty * 0.3);
+        packagingData.unshift(newItem);
+    }
+    
+    showToast('품목 등록 완료: ' + name);
+    closeModal('quickAddModal');
+    switchTab(type);
+}
+
+function bulkMove() {
+    if (selectedItems.length === 0) { showToast('품목을 선택해주세요'); return; }
+    document.getElementById('moveCount').textContent = selectedItems.length + '건 선택됨';
+    document.getElementById('bulkMoveModal').classList.add('show');
+}
+
+function bulkOutbound() {
+    if (selectedItems.length === 0) { showToast('품목을 선택해주세요'); return; }
+    document.getElementById('outCount').textContent = selectedItems.length + '건 선택됨';
+    document.getElementById('bulkOutModal').classList.add('show');
+}
+
+function bulkDeadline() {
+    if (selectedItems.length === 0) { showToast('품목을 선택해주세요'); return; }
+    document.getElementById('deadlineCount').textContent = selectedItems.length + '건 선택됨';
+    document.getElementById('bulkDeadlineModal').classList.add('show');
+}
+
+function confirmBulkMove() {
+    var loc = document.getElementById('bulkMoveLocation').value;
+    if (!loc) { showToast('위치를 선택해주세요'); return; }
+    
+    var allData = productData.concat(supplyData).concat(packagingData);
+    selectedItems.forEach(function(itemId) {
+        for (var i = 0; i < allData.length; i++) {
+            if (allData[i].id === itemId) { allData[i].location = loc; break; }
+        }
+    });
+    
+    showToast(selectedItems.length + '건 위치 이동 완료');
+    closeModal('bulkMoveModal');
+    toggleSelectMode();
+}
+
+function confirmBulkOut() {
+    var allData = productData.concat(supplyData).concat(packagingData);
+    var selectedItemsData = [];
+    selectedItems.forEach(function(itemId) {
+        for (var i = 0; i < allData.length; i++) {
+            if (allData[i].id === itemId) {
+                selectedItemsData.push(allData[i]);
+                break;
+            }
+        }
+    });
+    
+    var itemsParam = encodeURIComponent(JSON.stringify(selectedItemsData));
+    closeModal('bulkOutModal');
+    location.href = 'm_9_3_0.html?bulkItems=' + itemsParam;
+}
+
+function confirmBulkDeadline() {
+    var date = document.getElementById('bulkDeadlineDate').value;
+    if (!date) { showToast('날짜를 선택해주세요'); return; }
+    
+    // 선택된 품목들의 보관기한 업데이트
+    selectedItems.forEach(function(itemId) {
+        for (var i = 0; i < productData.length; i++) {
+            if (productData[i].id === itemId) {
+                productData[i].deadline = date;
+                // 기한이 7일 이내인지 확인하여 상태 업데이트
+                var today = new Date();
+                var deadlineDate = new Date(date);
+                var diffDays = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+                if (diffDays <= 7) {
+                    productData[i].status = 'deadline';
+                } else {
+                    productData[i].status = 'normal';
+                }
+                break;
+            }
+        }
+    });
+    
+    showToast(selectedItems.length + '건 기한 수정 완료: ' + date);
+    closeModal('bulkDeadlineModal');
+    toggleSelectMode();
+    renderAll();
+}
+
+function showToast(msg) {
+    var t = document.querySelector('.toast');
+    if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    setTimeout(function() { t.style.opacity = '0'; }, 2000);
+}
+
+document.addEventListener('DOMContentLoaded', initPage);
+document.addEventListener('click', function(e) { if (fabOpen && !e.target.closest('.fab-container')) toggleFab(); });
+</script>
+</body>
+</html>

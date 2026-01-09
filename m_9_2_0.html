@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>입고등록 - KSI OSP</title>
+    <link rel="stylesheet" href="./css/mobile-common.css">
+    <style>
+        body { padding-bottom: 130px; background: #f5f5f5; }
+        .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: white; }
+        .sub-header { background: white; padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; }
+        .btn-back { background: none; border: none; font-size: 18px; color: #333; padding: 5px; }
+        .sub-header-title { font-size: 17px; font-weight: bold; flex: 1; display: flex; align-items: center; gap: 6px; }
+        .sub-header-actions { display: flex; gap: 6px; align-items: center; }
+        .draft-btn { display: flex; align-items: center; gap: 4px; padding: 5px 8px; border: 1px solid #ddd; background: white; border-radius: 6px; font-size: 12px; color: #666; }
+        .draft-count { background: #1a73e8; color: white; font-size: 10px; padding: 2px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
+        .reset-btn { padding: 5px 8px; font-size: 12px; border: 1px solid #ddd; background: white; border-radius: 6px; color: #666; }
+        .tabs { display: flex; background: white; border-bottom: 1px solid #eee; }
+        .tab-btn { flex: 1; padding: 12px 8px; border: none; background: none; font-size: 14px; color: #666; font-weight: 500; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #1a73e8; border-bottom-color: #1a73e8; }
+        .main-content { margin-top: 95px; padding: 12px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card { background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 12px; overflow: hidden; }
+        .card-header { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-weight: bold; font-size: 13px; background: #fafafa; }
+        .card-body { padding: 12px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; font-size: 11px; font-weight: 500; color: #666; margin-bottom: 5px; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; background: white; box-sizing: border-box; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .search-row { display: flex; gap: 8px; }
+        .search-row input { flex: 1; }
+        .search-row button { padding: 10px 14px; background: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 13px; white-space: nowrap; }
+        .search-result { background: #e3f2fd; border-radius: 6px; padding: 10px; margin-top: 10px; display: none; }
+        .search-result.show { display: block; }
+        .search-result-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+        .search-result-row:last-child { margin-bottom: 0; }
+        .search-result-label { color: #666; }
+        .search-result-value { font-weight: 500; }
+        .add-btn { width: 100%; padding: 10px; background: #4caf50; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; }
+        .inbound-list { background: white; border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+        .inbound-list-header { padding: 10px 12px; background: #e3f2fd; font-weight: bold; font-size: 12px; display: flex; justify-content: space-between; }
+        .inbound-item { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px; }
+        .inbound-item:last-child { border-bottom: none; }
+        .inbound-item-info { flex: 1; min-width: 0; }
+        .inbound-item-title { font-weight: 500; font-size: 13px; margin-bottom: 2px; }
+        .inbound-item-detail { font-size: 11px; color: #888; }
+        .inbound-item-qty { background: #e3f2fd; padding: 3px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; color: #1565c0; }
+        .inbound-item-remove { width: 24px; height: 24px; border: none; background: #ffebee; color: #c62828; border-radius: 50%; font-size: 14px; }
+        .fixed-actions { position: fixed; bottom: 56px; left: 0; right: 0; padding: 8px 12px; background: white; border-top: 1px solid #eee; display: flex; gap: 8px; z-index: 90; }
+        .fixed-actions .btn { flex: 1; padding: 12px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid #ddd; background: white; }
+        .fixed-actions .btn-primary { background: #1a73e8; color: white; border-color: #1a73e8; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #eee; z-index: 100; height: 56px; }
+        .nav-item { flex: 1; padding: 6px 5px; text-align: center; font-size: 10px; color: #666; text-decoration: none; }
+        .nav-icon { font-size: 18px; margin-bottom: 2px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: flex-end; }
+        .modal-overlay.show { display: flex; }
+        .modal-overlay.center { align-items: center; justify-content: center; }
+        .modal { background: white; width: 100%; max-height: 70vh; border-radius: 16px 16px 0 0; display: flex; flex-direction: column; }
+        .modal.center-modal { width: 90%; max-width: 320px; border-radius: 12px; max-height: 80vh; }
+        .modal-header { padding: 12px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 15px; font-weight: bold; }
+        .modal-close { background: none; border: none; font-size: 22px; color: #666; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 0; }
+        .modal-footer { padding: 10px 15px; border-top: 1px solid #eee; display: flex; gap: 8px; }
+        .draft-list-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 10px; }
+        .draft-checkbox { width: 20px; height: 20px; border: 2px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+        .draft-checkbox.checked { background: #1a73e8; border-color: #1a73e8; color: white; }
+        .draft-info { flex: 1; }
+        .draft-title { font-weight: 500; font-size: 13px; margin-bottom: 2px; }
+        .draft-date { font-size: 11px; color: #888; }
+        .edit-actions { display: none; padding: 10px 15px; background: #f5f5f5; border-top: 1px solid #eee; gap: 8px; }
+        .edit-actions.show { display: flex; }
+        .empty-state { padding: 30px 20px; text-align: center; color: #888; }
+        .empty-icon { font-size: 40px; margin-bottom: 8px; }
+        .prod-list-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; }
+        .prod-list-item:active { background: #f8f8f8; }
+        .prod-title { font-weight: 500; margin-bottom: 4px; }
+        .prod-detail { font-size: 12px; color: #888; }
+        .toast { position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 6px; z-index: 400; opacity: 0; transition: opacity 0.3s; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="fixed-header">
+        <div class="sub-header">
+            <button class="btn-back" onclick="history.back()">←</button>
+            <div class="sub-header-title">📥 입고등록</div>
+            <div class="sub-header-actions">
+                <button class="draft-btn" onclick="openDraftModal()">저장 <span class="draft-count" id="draftCount">0</span></button>
+                <button class="reset-btn" onclick="resetForm()">초기화</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="product" onclick="switchTab('product')">📦 완제품</button>
+            <button class="tab-btn" data-tab="supply" onclick="switchTab('supply')">🔧 부자재</button>
+            <button class="tab-btn" data-tab="packaging" onclick="switchTab('packaging')">📦 포장재</button>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <!-- 완제품 탭 -->
+        <div class="tab-content active" id="tab-product">
+            <div class="card">
+                <div class="card-header">입고 정보</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">입고일 *</label><input type="date" class="form-control" id="inboundDate"></div>
+                        <div class="form-group"><label class="form-label">담당자 *</label><select class="form-control" id="manager"><option value="">선택</option><option>박창고</option><option>김물류</option><option>이재고</option></select></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">입고유형 *</label><select class="form-control" id="inboundType"><option>생산완료</option><option>반품입고</option><option>재입고</option></select></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">품목 추가</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">제작번호 검색 *</label>
+                        <input type="text" class="form-control" id="prodNumSearch" placeholder="제작번호 또는 품명 입력" oninput="searchProducts()">
+                    </div>
+                    <div class="search-items" id="searchItems" style="display:none;max-height:150px;overflow-y:auto;border:1px solid #eee;border-radius:6px;margin-bottom:10px;"></div>
+                    <div class="search-result" id="searchResult">
+                        <div class="search-result-row"><span class="search-result-label">고객사</span><span class="search-result-value" id="resCustomer">-</span></div>
+                        <div class="search-result-row"><span class="search-result-label">제목</span><span class="search-result-value" id="resTitle">-</span></div>
+                        <div class="search-result-row"><span class="search-result-label">주문수량</span><span class="search-result-value" id="resOrderQty">-</span></div>
+                    </div>
+                    <div class="form-row" style="margin-top:12px;">
+                        <div class="form-group"><label class="form-label">입고수량 *</label><input type="number" class="form-control" id="inboundQty" placeholder="0"></div>
+                        <div class="form-group"><label class="form-label">보관기한</label><input type="date" class="form-control" id="deadline"></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">보관위치 *</label>
+                        <div class="form-row-3">
+                            <select class="form-control" id="locBuilding"><option value="A">A동</option><option value="B">B동</option><option value="C">C동</option></select>
+                            <select class="form-control" id="locZone"><option value="1">1구역</option><option value="2">2구역</option><option value="3">3구역</option></select>
+                            <select class="form-control" id="locShelf"><option value="1">1선반</option><option value="2">2선반</option><option value="3">3선반</option></select>
+                        </div>
+                    </div>
+                    <button class="add-btn" onclick="addToList()">+ 목록에 추가</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 부자재 탭 -->
+        <div class="tab-content" id="tab-supply">
+            <div class="card">
+                <div class="card-header">입고 정보</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">입고일 *</label><input type="date" class="form-control" id="supplyDate"></div>
+                        <div class="form-group"><label class="form-label">담당자 *</label><select class="form-control" id="supplyManager"><option value="">선택</option><option>박창고</option><option>김물류</option></select></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">품목 추가</div>
+                <div class="card-body">
+                    <div class="form-group"><label class="form-label">품목 선택 *</label><select class="form-control" id="supplyItem"><option value="">선택하세요</option><option value="INK-C">Cyan 잉크 (1kg/통)</option><option value="INK-M">Magenta 잉크 (1kg/통)</option><option value="INK-Y">Yellow 잉크 (1kg/통)</option><option value="INK-K">Black 잉크 (1kg/통)</option><option value="ADH-HM">핫멜트 접착제 (5kg/통)</option><option value="ADH-PUR">PUR 접착제 (5kg/통)</option></select></div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">입고수량 *</label><input type="number" class="form-control" id="supplyQty" placeholder="0"></div>
+                        <div class="form-group"><label class="form-label">단위</label><input type="text" class="form-control" value="kg" readonly style="background:#f5f5f5;"></div>
+                    </div>
+                    <button class="add-btn" onclick="addSupplyToList()">+ 목록에 추가</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 포장재 탭 -->
+        <div class="tab-content" id="tab-packaging">
+            <div class="card">
+                <div class="card-header">입고 정보</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">입고일 *</label><input type="date" class="form-control" id="packDate"></div>
+                        <div class="form-group"><label class="form-label">담당자 *</label><select class="form-control" id="packManager"><option value="">선택</option><option>박창고</option><option>김물류</option></select></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">품목 추가</div>
+                <div class="card-body">
+                    <div class="form-group"><label class="form-label">품목 선택 *</label><select class="form-control" id="packItem"><option value="">선택하세요</option><option value="BOX-S">소형 박스 (300x200x150)</option><option value="BOX-M">중형 박스 (400x300x200)</option><option value="BOX-L">대형 박스 (500x400x300)</option><option value="AIRCAP">에어캡 (50cm x 100m)</option><option value="TAPE-OPP">OPP테이프 (48mm x 100m)</option></select></div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">입고수량 *</label><input type="number" class="form-control" id="packQty" placeholder="0"></div>
+                        <div class="form-group"><label class="form-label">단위</label><input type="text" class="form-control" value="개" readonly style="background:#f5f5f5;"></div>
+                    </div>
+                    <button class="add-btn" onclick="addPackToList()">+ 목록에 추가</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 입고 목록 -->
+        <div class="inbound-list" id="inboundList" style="display:none;">
+            <div class="inbound-list-header"><span>📋 입고 품목 목록</span><span id="listCount">0건</span></div>
+            <div id="inboundListBody"></div>
+        </div>
+    </div>
+    
+    <div class="fixed-actions">
+        <button class="btn" onclick="saveDraft()">임시저장</button>
+        <button class="btn btn-primary" onclick="submitInbound()">📥 입고등록</button>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="m_0_0_3.html" class="nav-item"><div class="nav-icon">🏠</div>홈</a>
+        <a href="m_3_1_0.html" class="nav-item"><div class="nav-icon">📋</div>주문</a>
+        <a href="m_5_1_1.html" class="nav-item"><div class="nav-icon">🖨️</div>인쇄</a>
+        <a href="m_6_1_1.html" class="nav-item"><div class="nav-icon">📚</div>제본</a>
+        <a href="m_7_1_1.html" class="nav-item"><div class="nav-icon">📦</div>출고</a>
+    </div>
+    
+    <!-- 임시저장 모달 -->
+    <div class="modal-overlay" id="draftModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">임시저장 목록</span><button class="modal-close" onclick="closeModal('draftModal')">×</button></div>
+            <div style="padding:8px 15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:#888;">총 <span style="color:#1a73e8;" id="draftTotalCount">0</span>개 선택됨</span><button id="editBtn" onclick="toggleEditMode()" style="padding:5px 10px;border:1px solid #ddd;background:white;border-radius:5px;font-size:12px;">편집</button></div>
+            <div class="modal-body" id="draftListBody"></div>
+            <div class="edit-actions" id="editActions"><button onclick="deleteAllDrafts()" style="flex:1;padding:10px;border:1px solid #ddd;background:white;border-radius:6px;font-size:13px;">전체 삭제</button><button onclick="deleteSelectedDrafts()" style="flex:1;padding:10px;border:1px solid #ddd;background:white;border-radius:6px;font-size:13px;">선택 삭제</button></div>
+            <div class="modal-footer" id="normalFooter"><button onclick="closeModal('draftModal')" style="flex:1;padding:10px;border:1px solid #ddd;background:white;border-radius:6px;font-size:13px;">닫기</button></div>
+        </div>
+    </div>
+
+<script>
+let currentTab = 'product', inboundList = [], selectedProduct = null, drafts = [], editMode = false, selectedDrafts = [];
+const productData = [
+    { id: '28646', customer: 'Abc출판사', title: '문법 탄탄 Writing 2', orderQty: 3000 },
+    { id: '28645', customer: '서울대출판부', title: '한국사 연구방법론', orderQty: 1500 },
+    { id: '28644', customer: '메디헬북스', title: '임상의학 핸드북', orderQty: 2000 },
+    { id: '28643', customer: '테크미디어', title: 'AI 프로그래밍 입문', orderQty: 2500 },
+    { id: '28640', customer: '교육진흥원', title: '2025 교육백서', orderQty: 3000 }
+];
+
+function initPage() {
+    const today = new Date().toISOString().split('T')[0];
+    const deadline = new Date(); deadline.setDate(deadline.getDate() + 30);
+    document.getElementById('inboundDate').value = today;
+    document.getElementById('supplyDate').value = today;
+    document.getElementById('packDate').value = today;
+    document.getElementById('deadline').value = deadline.toISOString().split('T')[0];
+    loadDrafts();
+    
+    // URL 파라미터 처리
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // location 값 가져오기 (파렛트관리에서 넘어온 경우)
+    const locationParam = urlParams.get('location');
+    if (locationParam) {
+        const parts = locationParam.split('-');
+        if (parts.length >= 1) {
+            document.getElementById('locBuilding').value = parts[0];
+        }
+        if (parts.length >= 2) {
+            document.getElementById('locZone').value = parts[1];
+        }
+        if (parts.length >= 3) {
+            document.getElementById('locShelf').value = parts[2];
+        }
+        showToast('보관위치가 설정되었습니다: ' + locationParam);
+    }
+    
+    // 단일 품목 추가 (addItem)
+    const addItemData = urlParams.get('addItem');
+    if (addItemData) {
+        try {
+            const item = JSON.parse(decodeURIComponent(addItemData));
+            if (item.id) {
+                var type = item.customer ? 'product' : (item.safety !== undefined ? 'supply' : 'packaging');
+                inboundList.push({ 
+                    type: type, 
+                    id: item.id, 
+                    name: item.name, 
+                    customer: item.customer || '', 
+                    qty: 1, 
+                    unit: item.unit || '부',
+                    location: item.location || ''
+                });
+                renderList();
+                showToast(item.name + ' 추가됨');
+            }
+        } catch(e) {}
+    }
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.tab === tab); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.toggle('active', c.id === 'tab-' + tab); });
+}
+
+function searchProducts() {
+    var keyword = document.getElementById('prodNumSearch').value.toLowerCase().trim();
+    var container = document.getElementById('searchItems');
+    
+    if (!keyword) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    var filtered = productData.filter(function(p) { 
+        return p.id.toLowerCase().indexOf(keyword) !== -1 || p.title.toLowerCase().indexOf(keyword) !== -1 || p.customer.toLowerCase().indexOf(keyword) !== -1; 
+    });
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div style="padding:15px;text-align:center;color:#888;font-size:13px;">검색 결과가 없습니다</div>';
+    } else {
+        container.innerHTML = filtered.map(function(p) { 
+            return '<div class="prod-list-item" onclick="selectProduct(\'' + p.id + '\')"><div class="prod-title">' + p.id + ' - ' + p.title + '</div><div class="prod-detail">' + p.customer + ' · ' + p.orderQty.toLocaleString() + '부</div></div>'; 
+        }).join('');
+    }
+    container.style.display = 'block';
+}
+
+function selectProduct(id) {
+    var p = productData.find(function(x) { return x.id === id; });
+    if (!p) return;
+    selectedProduct = p;
+    document.getElementById('prodNumSearch').value = p.id + ' - ' + p.title;
+    document.getElementById('resCustomer').textContent = p.customer;
+    document.getElementById('resTitle').textContent = p.title;
+    document.getElementById('resOrderQty').textContent = p.orderQty.toLocaleString() + '부';
+    document.getElementById('searchResult').classList.add('show');
+    document.getElementById('searchItems').style.display = 'none';
+}
+
+function addToList() {
+    if (!selectedProduct) { showToast('제품을 먼저 검색해주세요'); return; }
+    const qty = parseInt(document.getElementById('inboundQty').value);
+    if (!qty || qty <= 0) { showToast('수량을 입력해주세요'); return; }
+    inboundList.push({ type:'product', id:selectedProduct.id, name:selectedProduct.title, customer:selectedProduct.customer, qty:qty, unit:'부', location:document.getElementById('locBuilding').value+'-'+document.getElementById('locZone').value+'-'+document.getElementById('locShelf').value });
+    renderList(); resetProductForm(); showToast('추가되었습니다');
+}
+
+function addSupplyToList() {
+    const sel = document.getElementById('supplyItem'), qty = parseInt(document.getElementById('supplyQty').value);
+    if (!sel.value) { showToast('품목을 선택해주세요'); return; }
+    if (!qty || qty <= 0) { showToast('수량을 입력해주세요'); return; }
+    inboundList.push({ type:'supply', id:sel.value, name:sel.options[sel.selectedIndex].text, qty:qty, unit:'kg' });
+    renderList(); sel.value = ''; document.getElementById('supplyQty').value = ''; showToast('추가되었습니다');
+}
+
+function addPackToList() {
+    const sel = document.getElementById('packItem'), qty = parseInt(document.getElementById('packQty').value);
+    if (!sel.value) { showToast('품목을 선택해주세요'); return; }
+    if (!qty || qty <= 0) { showToast('수량을 입력해주세요'); return; }
+    inboundList.push({ type:'packaging', id:sel.value, name:sel.options[sel.selectedIndex].text, qty:qty, unit:'개' });
+    renderList(); sel.value = ''; document.getElementById('packQty').value = ''; showToast('추가되었습니다');
+}
+
+function renderList() {
+    const c = document.getElementById('inboundListBody'), l = document.getElementById('inboundList');
+    if (inboundList.length === 0) { l.style.display = 'none'; return; }
+    l.style.display = 'block'; document.getElementById('listCount').textContent = inboundList.length + '건';
+    c.innerHTML = inboundList.map(function(item, idx) {
+        return '<div class="inbound-item">' +
+            '<div class="inbound-item-info"><div class="inbound-item-title">' + item.name + '</div><div class="inbound-item-detail">' + (item.customer || item.id) + '</div></div>' +
+            '<div style="display:flex;align-items:center;gap:6px;">' +
+                '<button onclick="changeInQty(' + idx + ',-1)" style="width:24px;height:24px;border:1px solid #ddd;background:#f5f5f5;border-radius:4px;font-size:14px;">-</button>' +
+                '<input type="number" value="' + item.qty + '" onchange="updateInQty(' + idx + ',this.value)" style="width:50px;text-align:center;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:13px;">' +
+                '<span style="font-size:12px;color:#888;">' + item.unit + '</span>' +
+                '<button onclick="changeInQty(' + idx + ',1)" style="width:24px;height:24px;border:1px solid #ddd;background:#f5f5f5;border-radius:4px;font-size:14px;">+</button>' +
+            '</div>' +
+            '<button class="inbound-item-remove" onclick="removeItem(' + idx + ')">×</button>' +
+        '</div>';
+    }).join('');
+}
+function changeInQty(idx, delta) {
+    var newQty = (inboundList[idx].qty || 1) + delta;
+    if (newQty < 1) newQty = 1;
+    inboundList[idx].qty = newQty;
+    renderList();
+}
+function updateInQty(idx, val) {
+    var newQty = parseInt(val) || 1;
+    if (newQty < 1) newQty = 1;
+    inboundList[idx].qty = newQty;
+    renderList();
+}
+
+function removeItem(idx) { inboundList.splice(idx, 1); renderList(); }
+function resetProductForm() { document.getElementById('prodNumSearch').value = ''; document.getElementById('inboundQty').value = ''; document.getElementById('searchResult').classList.remove('show'); selectedProduct = null; }
+function resetForm() { if (!confirm('초기화하시겠습니까?')) return; inboundList = []; renderList(); resetProductForm(); showToast('초기화되었습니다'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function loadDrafts() { try { drafts = JSON.parse(localStorage.getItem('inboundDrafts') || '[]'); } catch(e) { drafts = []; } document.getElementById('draftCount').textContent = drafts.length; }
+function saveDraft() {
+    if (inboundList.length === 0) { showToast('저장할 항목이 없습니다'); return; }
+    drafts.unshift({ id:Date.now(), date:new Date().toLocaleString('ko-KR'), title:inboundList[0].name + (inboundList.length > 1 ? ' 외 ' + (inboundList.length - 1) + '건' : ''), items:[...inboundList] });
+    localStorage.setItem('inboundDrafts', JSON.stringify(drafts)); document.getElementById('draftCount').textContent = drafts.length; showToast('임시저장되었습니다');
+}
+function openDraftModal() { editMode = false; selectedDrafts = []; renderDraftList(); document.getElementById('draftModal').classList.add('show'); document.getElementById('editActions').classList.remove('show'); document.getElementById('normalFooter').style.display = 'flex'; document.getElementById('editBtn').textContent = '편집'; }
+function renderDraftList() {
+    document.getElementById('draftTotalCount').textContent = selectedDrafts.length;
+    if (drafts.length === 0) { document.getElementById('draftListBody').innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div><div>임시저장된 품목이 없습니다</div></div>'; return; }
+    document.getElementById('draftListBody').innerHTML = drafts.map(function(d) { const isSel = selectedDrafts.includes(d.id); return '<div class="draft-list-item" onclick="' + (editMode ? 'toggleDraftSelection(' + d.id + ')' : 'loadDraft(' + d.id + ')') + '">' + (editMode ? '<div class="draft-checkbox ' + (isSel ? 'checked' : '') + '">' + (isSel ? '✓' : '') + '</div>' : '') + '<div class="draft-info"><div class="draft-title">' + (d.title || '제목 없음') + '</div><div class="draft-date">' + d.date + '</div></div></div>'; }).join('');
+}
+function toggleEditMode() { editMode = !editMode; selectedDrafts = []; document.getElementById('editBtn').textContent = editMode ? '완료' : '편집'; document.getElementById('editActions').classList.toggle('show', editMode); document.getElementById('normalFooter').style.display = editMode ? 'none' : 'flex'; renderDraftList(); }
+function toggleDraftSelection(id) { const idx = selectedDrafts.indexOf(id); if (idx > -1) selectedDrafts.splice(idx, 1); else selectedDrafts.push(id); renderDraftList(); }
+function deleteAllDrafts() { if (!confirm('모두 삭제하시겠습니까?')) return; drafts = []; localStorage.setItem('inboundDrafts', '[]'); document.getElementById('draftCount').textContent = 0; renderDraftList(); showToast('삭제되었습니다'); }
+function deleteSelectedDrafts() { if (selectedDrafts.length === 0) { showToast('선택해주세요'); return; } drafts = drafts.filter(function(d) { return !selectedDrafts.includes(d.id); }); selectedDrafts = []; localStorage.setItem('inboundDrafts', JSON.stringify(drafts)); document.getElementById('draftCount').textContent = drafts.length; renderDraftList(); showToast('삭제되었습니다'); }
+function loadDraft(id) { const d = drafts.find(function(x) { return x.id === id; }); if (!d) return; inboundList = d.items || []; renderList(); closeModal('draftModal'); showToast('불러왔습니다'); }
+function submitInbound() { if (inboundList.length === 0) { showToast('품목을 추가해주세요'); return; } if (!confirm(inboundList.length + '건 입고등록하시겠습니까?')) return; showToast('입고 완료!'); inboundList = []; renderList(); setTimeout(function() { location.href = 'm_9_1_0.html'; }, 800); }
+function showToast(msg) { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.style.opacity = '1'; setTimeout(function() { t.style.opacity = '0'; }, 2000); }
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>

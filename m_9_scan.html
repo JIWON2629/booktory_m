@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>바코드 스캔 - KSI OSP</title>
+    <link rel="stylesheet" href="./css/mobile-common.css">
+    <style>
+        body { background: #000; margin: 0; height: 100vh; overflow: hidden; }
+        .scan-header { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 10; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); }
+        .btn-close { background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; }
+        .scan-title { color: white; font-size: 16px; font-weight: bold; }
+        .scan-mode { display: flex; gap: 5px; }
+        .mode-btn { padding: 6px 12px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: white; border-radius: 15px; font-size: 12px; }
+        .mode-btn.active { background: white; color: #333; }
+        
+        .camera-view { position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
+        .camera-view video { width: 100%; height: 100%; object-fit: cover; }
+        
+        .scan-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+        .scan-frame { width: 280px; height: 180px; border: 3px solid white; border-radius: 16px; position: relative; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); }
+        .scan-corner { position: absolute; width: 30px; height: 30px; border: 4px solid #4caf50; }
+        .scan-corner.tl { top: -4px; left: -4px; border-right: none; border-bottom: none; border-radius: 16px 0 0 0; }
+        .scan-corner.tr { top: -4px; right: -4px; border-left: none; border-bottom: none; border-radius: 0 16px 0 0; }
+        .scan-corner.bl { bottom: -4px; left: -4px; border-right: none; border-top: none; border-radius: 0 0 0 16px; }
+        .scan-corner.br { bottom: -4px; right: -4px; border-left: none; border-top: none; border-radius: 0 0 16px 0; }
+        .scan-line { position: absolute; left: 10px; right: 10px; height: 2px; background: linear-gradient(90deg, transparent, #4caf50, transparent); animation: scanMove 2s ease-in-out infinite; }
+        @keyframes scanMove { 0%, 100% { top: 10px; } 50% { top: calc(100% - 12px); } }
+        .scan-hint { color: white; margin-top: 30px; font-size: 14px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        
+        .scan-bottom { position: fixed; bottom: 0; left: 0; right: 0; padding: 20px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); }
+        .action-select { margin-bottom: 15px; }
+        .action-select label { color: #aaa; font-size: 12px; display: block; margin-bottom: 8px; }
+        .action-btns { display: flex; gap: 8px; }
+        .action-btn { flex: 1; padding: 12px; border: 2px solid rgba(255,255,255,0.3); background: transparent; color: white; border-radius: 10px; font-size: 13px; }
+        .action-btn.active { border-color: #4caf50; background: rgba(76,175,80,0.2); }
+        
+        .manual-input { display: flex; gap: 10px; margin-bottom: 15px; }
+        .manual-input input { flex: 1; padding: 14px; border: none; border-radius: 10px; font-size: 14px; }
+        .manual-input button { padding: 14px 20px; background: #4caf50; color: white; border: none; border-radius: 10px; font-weight: bold; }
+        
+        .test-btns { display: flex; gap: 8px; }
+        .test-btn { flex: 1; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #aaa; border-radius: 8px; font-size: 12px; }
+        
+        .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(76,175,80,0.95); color: white; padding: 20px 40px; border-radius: 16px; z-index: 100; font-size: 16px; font-weight: bold; opacity: 0; transition: opacity 0.3s; }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="scan-header">
+        <button class="btn-close" onclick="goBack()">×</button>
+        <div class="scan-title">바코드 스캔</div>
+        <div class="scan-mode">
+            <button class="mode-btn active" data-format="all">전체</button>
+            <button class="mode-btn" data-format="code128">CODE128</button>
+            <button class="mode-btn" data-format="qr">QR</button>
+        </div>
+    </div>
+    
+    <div class="camera-view">
+        <video id="video" autoplay playsinline></video>
+    </div>
+    
+    <div class="scan-overlay">
+        <div class="scan-frame">
+            <div class="scan-corner tl"></div>
+            <div class="scan-corner tr"></div>
+            <div class="scan-corner bl"></div>
+            <div class="scan-corner br"></div>
+            <div class="scan-line"></div>
+        </div>
+        <div class="scan-hint">바코드를 프레임 안에 맞춰주세요</div>
+    </div>
+    
+    <div class="scan-bottom">
+        <div class="action-select">
+            <label>스캔 후 이동할 페이지</label>
+            <div class="action-btns">
+                <button class="action-btn active" data-action="inbound" onclick="setAction('inbound')">📥 입고등록</button>
+                <button class="action-btn" data-action="outbound" onclick="setAction('outbound')">📤 출고등록</button>
+                <button class="action-btn" data-action="info" onclick="setAction('info')">🔍 재고조회</button>
+            </div>
+        </div>
+        
+        <div class="manual-input">
+            <input type="text" id="manualCode" placeholder="바코드 직접 입력">
+            <button onclick="processManualInput()">확인</button>
+        </div>
+        
+        <div class="test-btns">
+            <button class="test-btn" onclick="simulateScan('28646')">테스트: 28646</button>
+            <button class="test-btn" onclick="simulateScan('INK-C')">테스트: INK-C</button>
+            <button class="test-btn" onclick="simulateScan('BOX-M')">테스트: BOX-M</button>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+<script src="./js/barcode-scanner.js"></script>
+<script>
+let currentAction = 'inbound';
+let isProcessing = false;
+
+function goBack() {
+    const returnPage = localStorage.getItem('scanReturnPage');
+    if (returnPage) {
+        localStorage.removeItem('scanReturnPage');
+        location.href = returnPage;
+    } else {
+        location.href = 'm_9_1_0.html';
+    }
+}
+
+function setAction(action) {
+    currentAction = action;
+    document.querySelectorAll('.action-btn').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.action === action);
+    });
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 1500);
+}
+
+function processCode(code) {
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    // 진동 피드백
+    if (navigator.vibrate) navigator.vibrate(100);
+    
+    showToast('✓ 스캔 완료: ' + code);
+    
+    // 짧은 딜레이 후 자동 이동
+    setTimeout(function() {
+        localStorage.setItem('lastScannedCode', code);
+        
+        let targetPage = 'm_9_2_0.html'; // 기본: 입고
+        if (currentAction === 'outbound') targetPage = 'm_9_3_0.html';
+        else if (currentAction === 'info') targetPage = 'm_9_5_0.html?search=' + code;
+        
+        location.href = targetPage + (targetPage.includes('?') ? '&' : '?') + 'code=' + code;
+    }, 800);
+}
+
+function processManualInput() {
+    const code = document.getElementById('manualCode').value.trim();
+    if (!code) {
+        showToast('바코드를 입력해주세요');
+        return;
+    }
+    processCode(code);
+}
+
+function simulateScan(code) {
+    processCode(code);
+}
+
+// 모드 전환
+document.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+    });
+});
+
+// 카메라 초기화
+async function initCamera() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        document.getElementById('video').srcObject = stream;
+    } catch (err) {
+        console.log('카메라 접근 불가:', err);
+        // 카메라 없어도 수동 입력 가능
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initCamera();
+    
+    // 이전에 선택한 액션 복원
+    const returnPage = localStorage.getItem('scanReturnPage');
+    if (returnPage) {
+        if (returnPage.includes('m_9_2_0')) setAction('inbound');
+        else if (returnPage.includes('m_9_3_0')) setAction('outbound');
+    }
+});
+</script>
+</body>
+</html>

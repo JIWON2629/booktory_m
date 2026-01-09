@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>오프라인 - KSI OSP</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Malgun Gothic', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .offline-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .offline-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .offline-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .offline-message {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .offline-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .btn {
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .pending-info {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .pending-title {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        .pending-count {
+            display: inline-block;
+            background: #fff3e0;
+            color: #e65100;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .logo {
+            margin-bottom: 20px;
+        }
+        .logo .ksi {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1a5dad;
+            font-style: italic;
+        }
+        .logo .osp {
+            background: #ff6b35;
+            color: white;
+            padding: 3px 8px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="logo">
+            <span class="ksi">KSI</span>
+            <span class="osp">OSP</span>
+        </div>
+        <div class="offline-icon">📴</div>
+        <div class="offline-title">오프라인 상태입니다</div>
+        <div class="offline-message">
+            인터넷 연결이 없습니다.<br>
+            연결이 복구되면 저장된 데이터가<br>
+            자동으로 동기화됩니다.
+        </div>
+        <div class="offline-actions">
+            <button class="btn btn-primary" onclick="tryReconnect()">
+                🔄 다시 연결 시도
+            </button>
+            <a href="./m_9_1_0.html" class="btn btn-secondary">
+                📦 캐시된 재고관리 열기
+            </a>
+        </div>
+        <div class="pending-info">
+            <div class="pending-title">동기화 대기 중인 데이터</div>
+            <div class="pending-count" id="pendingCount">0건</div>
+        </div>
+    </div>
+
+    <script>
+        // 대기 중인 동기화 데이터 확인
+        function checkPendingSync() {
+            try {
+                const pending = localStorage.getItem('pendingSync');
+                const count = pending ? JSON.parse(pending).length : 0;
+                document.getElementById('pendingCount').textContent = count + '건';
+            } catch (e) {
+                document.getElementById('pendingCount').textContent = '0건';
+            }
+        }
+
+        // 재연결 시도
+        function tryReconnect() {
+            const btn = event.target;
+            btn.textContent = '🔄 연결 중...';
+            btn.disabled = true;
+            
+            fetch('./index.html', { method: 'HEAD', cache: 'no-store' })
+                .then(function(response) {
+                    if (response.ok) {
+                        location.href = './index.html';
+                    } else {
+                        throw new Error('Not connected');
+                    }
+                })
+                .catch(function() {
+                    btn.textContent = '❌ 연결 실패';
+                    setTimeout(function() {
+                        btn.textContent = '🔄 다시 연결 시도';
+                        btn.disabled = false;
+                    }, 2000);
+                });
+        }
+
+        // 온라인 상태 변경 감지
+        window.addEventListener('online', function() {
+            location.href = './index.html';
+        });
+
+        checkPendingSync();
+    </script>
+</body>
+</html>

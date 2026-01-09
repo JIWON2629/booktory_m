@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>재고현황 - KSI OSP</title>
+    <link rel="stylesheet" href="./css/mobile-common.css">
+    <style>
+        body { background: #f5f5f5; padding-bottom: 70px; }
+        .header { background: #333; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 48px; }
+        .header-logo { display: flex; align-items: center; gap: 5px; }
+        .header-logo .ksi { font-size: 20px; font-weight: bold; color: #1a5dad; font-style: italic; }
+        .header-logo .osp { background: #ff6b35; color: white; padding: 2px 6px; font-size: 12px; font-weight: bold; border-radius: 3px; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .notification-badge { background: #1a73e8; color: white; border-radius: 4px; padding: 4px 10px; font-size: 13px; font-weight: bold; text-decoration: none; }
+        .menu-btn { background: none; border: none; color: white; font-size: 26px; padding: 5px; }
+        .user-icon { width: 30px; height: 30px; border: 2px solid #666; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .user-icon svg { width: 18px; height: 18px; fill: #999; }
+        .page-title { padding: 15px; background: white; border-bottom: 1px solid #eee; margin-top: 48px; }
+        .page-title h1 { font-size: 19px; margin: 0; display: flex; align-items: center; gap: 8px; }
+        
+        /* 새로운 KPI 카드 스타일 */
+        .dashboard-cards { padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+        
+        /* 완제품 보관 카드 (넓은 카드) */
+        .storage-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .storage-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .storage-card-title { font-size: 15px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .storage-card-value { font-size: 24px; font-weight: bold; color: #1a73e8; }
+        .storage-progress { height: 12px; background: #e0e0e0; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+        .storage-progress-fill { height: 100%; background: linear-gradient(90deg, #4caf50, #8bc34a); border-radius: 6px; transition: width 0.3s; }
+        .storage-progress-fill.warning { background: linear-gradient(90deg, #ff9800, #ffb74d); }
+        .storage-progress-fill.danger { background: linear-gradient(90deg, #f44336, #ef5350); }
+        .storage-info { display: flex; justify-content: space-between; font-size: 13px; color: #888; }
+        
+        /* 알림 카드 그리드 */
+        .alert-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .alert-card { background: white; border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); cursor: pointer; transition: transform 0.2s; display: flex; align-items: center; gap: 12px; }
+        .alert-card:active { transform: scale(0.98); }
+        .alert-card-icon { font-size: 24px; flex-shrink: 0; }
+        .alert-card-content { flex: 1; min-width: 0; }
+        .alert-card-value { font-size: 22px; font-weight: bold; }
+        .alert-card-value.danger { color: #f44336; }
+        .alert-card-value.warning { color: #ff9800; }
+        .alert-card-value.info { color: #1a73e8; }
+        .alert-card-label { font-size: 12px; color: #666; }
+        .alert-card-sub { font-size: 10px; color: #999; }
+        
+        /* 금일 입출고 카드 (넓은 카드) */
+        .today-card { background: white; border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .today-card-title { font-size: 14px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .today-stats { display: flex; gap: 12px; }
+        .today-stat { flex: 1; text-align: center; padding: 8px; background: #f8f9fa; border-radius: 8px; }
+        .today-stat-icon { font-size: 18px; margin-bottom: 4px; }
+        .today-stat-value { font-size: 18px; font-weight: bold; }
+        .today-stat-value.in { color: #4caf50; }
+        .today-stat-value.out { color: #ff9800; }
+        .today-stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+        
+        .section-title { padding: 15px 15px 10px; font-weight: bold; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .alert-list { padding: 0 15px 15px; }
+        .alert-item { background: white; border-radius: 10px; padding: 12px 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; border-left: 4px solid #f44336; }
+        .alert-item.warning { border-left-color: #ff9800; }
+        .alert-item.hidden { display: none; }
+        .alert-icon { font-size: 22px; }
+        .alert-info { flex: 1; }
+        .alert-title { font-weight: 500; font-size: 14px; margin-bottom: 2px; }
+        .alert-detail { font-size: 12px; color: #888; }
+        .alert-action { padding: 7px 14px; background: #f5f5f5; border: none; border-radius: 6px; font-size: 13px; color: #666; }
+        .alert-action:active { background: #e0e0e0; }
+        .expand-btn { width: 100%; padding: 10px; background: #f0f0f0; border: none; border-radius: 8px; font-size: 13px; color: #666; display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 5px; }
+        .expand-btn:active { background: #e0e0e0; }
+        .expand-btn.hidden { display: none; }
+        .quick-menu { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 0 15px 15px; }
+        .quick-item { background: white; border-radius: 10px; padding: 15px 10px; text-align: center; text-decoration: none; color: #333; }
+        .quick-item:active { background: #f5f5f5; }
+        .quick-icon { font-size: 26px; margin-bottom: 6px; }
+        .quick-label { font-size: 12px; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #eee; z-index: 100; height: 56px; }
+        .nav-item { flex: 1; padding: 8px 5px; text-align: center; font-size: 11px; color: #666; text-decoration: none; }
+        .nav-item.active { color: #1a73e8; }
+        .nav-icon { font-size: 20px; margin-bottom: 2px; }
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; z-index: 400; opacity: 0; transition: opacity 0.3s; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-logo"><span class="ksi">KSI</span><span class="osp">OSP</span></div>
+        <div class="header-right">
+            <a href="#" class="notification-badge">12</a>
+            <div class="user-icon"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></div>
+            <button class="menu-btn">☰</button>
+        </div>
+    </div>
+    
+    <div class="page-title"><h1>📦 재고현황</h1></div>
+    
+    <div class="dashboard-cards">
+        <!-- 완제품 보관 (사용률) -->
+        <div class="storage-card" onclick="location.href='m_9_7_0.html'">
+            <div class="storage-card-header">
+                <span class="storage-card-title">📦 완제품 보관</span>
+                <span class="storage-card-value">72%</span>
+            </div>
+            <div class="storage-progress">
+                <div class="storage-progress-fill warning" style="width: 72%"></div>
+            </div>
+            <div class="storage-info">
+                <span>사용 중: 36 / 50 파렛트</span>
+                <span>여유: 14 파렛트</span>
+            </div>
+        </div>
+        
+        <!-- 알림 카드들 -->
+        <div class="alert-cards">
+            <div class="alert-card" onclick="location.href='m_9_5_0.html?filter=deadline'">
+                <div class="alert-card-icon">⏰</div>
+                <div class="alert-card-content">
+                    <div class="alert-card-label">보관기한 임박</div>
+                    <div class="alert-card-sub">7일 이내 만료</div>
+                </div>
+                <div class="alert-card-value danger">3</div>
+            </div>
+            <div class="alert-card" onclick="location.href='m_9_5_0.html?tab=supply&filter=low'">
+                <div class="alert-card-icon">🔧</div>
+                <div class="alert-card-content">
+                    <div class="alert-card-label">부자재 부족</div>
+                    <div class="alert-card-sub">안전재고 미달</div>
+                </div>
+                <div class="alert-card-value warning">2</div>
+            </div>
+            <div class="alert-card" onclick="location.href='m_9_5_0.html?tab=packaging&filter=low'">
+                <div class="alert-card-icon">📦</div>
+                <div class="alert-card-content">
+                    <div class="alert-card-label">포장재 부족</div>
+                    <div class="alert-card-sub">안전재고 미달</div>
+                </div>
+                <div class="alert-card-value warning">1</div>
+            </div>
+            <div class="alert-card" onclick="location.href='m_9_6_0.html'">
+                <div class="alert-card-icon">📊</div>
+                <div class="alert-card-content">
+                    <div class="alert-card-label">금일 입출고</div>
+                    <div class="alert-card-sub">입고 4 / 출고 2</div>
+                </div>
+                <div class="alert-card-value info">6</div>
+            </div>
+        </div>
+        
+        <!-- 금일 입출고 상세 -->
+        <div class="today-card" onclick="location.href='m_9_6_0.html'">
+            <div class="today-card-title">📈 금일 입출고 현황</div>
+            <div class="today-stats">
+                <div class="today-stat">
+                    <div class="today-stat-icon">📥</div>
+                    <div class="today-stat-value in">+4</div>
+                    <div class="today-stat-label">입고</div>
+                </div>
+                <div class="today-stat">
+                    <div class="today-stat-icon">📤</div>
+                    <div class="today-stat-value out">-2</div>
+                    <div class="today-stat-label">출고</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section-title">🚨 긴급 알림 <span style="font-weight:normal;font-size:13px;color:#888;" id="alertTotalText">0건</span></div>
+    <div class="alert-list" id="alertList"></div>
+    
+    <div class="section-title">⚡ 빠른 메뉴</div>
+    <div class="quick-menu">
+        <a href="m_9_2_0.html" class="quick-item"><div class="quick-icon">📥</div><div class="quick-label">입고등록</div></a>
+        <a href="m_9_3_0.html" class="quick-item"><div class="quick-icon">📤</div><div class="quick-label">출고등록</div></a>
+        <a href="m_9_5_0.html" class="quick-item"><div class="quick-icon">📋</div><div class="quick-label">재고목록</div></a>
+        <a href="m_9_4_0.html" class="quick-item"><div class="quick-icon">🛒</div><div class="quick-label">발주요청</div></a>
+        <a href="m_9_5_1_0.html" class="quick-item"><div class="quick-icon">📊</div><div class="quick-label">재고실사</div></a>
+        <a href="m_9_8_0.html" class="quick-item"><div class="quick-icon">⚖️</div><div class="quick-label">재고조정</div></a>
+        <a href="m_9_6_0.html" class="quick-item"><div class="quick-icon">📈</div><div class="quick-label">입출고현황</div></a>
+        <a href="m_9_7_0.html" class="quick-item"><div class="quick-icon">🏭</div><div class="quick-label">파렛트</div></a>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="m_0_0_3.html" class="nav-item"><div class="nav-icon">🏠</div>홈</a>
+        <a href="m_3_1_0.html" class="nav-item"><div class="nav-icon">📋</div>주문</a>
+        <a href="m_5_1_1.html" class="nav-item"><div class="nav-icon">🖨️</div>인쇄</a>
+        <a href="m_6_1_1.html" class="nav-item"><div class="nav-icon">📚</div>제본</a>
+        <a href="m_7_1_1.html" class="nav-item"><div class="nav-icon">📦</div>출고</a>
+    </div>
+
+<script>
+var alertsExpanded = false;
+var MAX_VISIBLE_ALERTS = 3;
+
+// 기본 알림 데이터
+var baseAlerts = [
+    { icon: '⏰', title: '보관기한 만료: 2025 교육백서', detail: '제작번호 28640 · 2,500부', type: 'danger', itemId: '28640' },
+    { icon: '⏰', title: '보관기한 3일 임박: 민법총론', detail: '제작번호 28638 · 1,500부', type: 'warning', itemId: '28638' },
+    { icon: '📉', title: 'Magenta 잉크 부족', detail: '현재 2kg / 안전재고 5kg', type: 'danger', itemId: 'INK-M' },
+    { icon: '📉', title: 'PUR 접착제 부족', detail: '현재 8kg / 안전재고 10kg', type: 'danger', itemId: 'ADH-PUR' },
+    { icon: '📉', title: '중형 박스 부족', detail: '현재 45개 / 안전재고 100개', type: 'danger', itemId: 'BOX-M' }
+];
+
+function initPage() {
+    renderAlerts();
+}
+
+function renderAlerts() {
+    var alerts = [];
+    
+    // 재고 실사 결과 확인
+    var stockCheckResult = null;
+    try {
+        stockCheckResult = JSON.parse(localStorage.getItem('stockCheckResult'));
+    } catch(e) {}
+    
+    // 실사 결과가 있고 차이가 있으면 최상단에 추가
+    if (stockCheckResult && stockCheckResult.diffCount > 0) {
+        alerts.push({
+            icon: '📊',
+            title: '재고 실사 결과 반영 필요',
+            detail: '차이 발생 ' + stockCheckResult.diffCount + '건 · 실사일 ' + stockCheckResult.date,
+            type: 'stockcheck',
+            action: 'm_9_8_0.html'
+        });
+    }
+    
+    // 기본 알림 추가
+    alerts = alerts.concat(baseAlerts);
+    
+    // 알림 렌더링
+    var container = document.getElementById('alertList');
+    var html = '';
+    
+    for (var i = 0; i < alerts.length; i++) {
+        var alert = alerts[i];
+        var isHidden = i >= MAX_VISIBLE_ALERTS && !alertsExpanded;
+        var borderColor = alert.type === 'stockcheck' ? '#9c27b0' : (alert.type === 'warning' ? '#ff9800' : '#f44336');
+        var btnStyle = alert.type === 'stockcheck' ? 'background:#9c27b0;color:white;' : '';
+        var actionAttr = alert.action ? 'onclick="location.href=\'' + alert.action + '\'"' : 'onclick="goToDetail(\'' + alert.itemId + '\')"';
+        
+        html += '<div class="alert-item' + (isHidden ? ' hidden' : '') + (alert.type === 'warning' ? ' warning' : '') + '" data-index="' + i + '" style="border-left-color:' + borderColor + ';">' +
+            '<div class="alert-icon">' + alert.icon + '</div>' +
+            '<div class="alert-info">' +
+                '<div class="alert-title">' + alert.title + '</div>' +
+                '<div class="alert-detail">' + alert.detail + '</div>' +
+            '</div>' +
+            '<button class="alert-action" ' + actionAttr + ' style="' + btnStyle + '">상세</button>' +
+        '</div>';
+    }
+    
+    // 더보기 버튼
+    var hiddenCount = alerts.length - MAX_VISIBLE_ALERTS;
+    if (hiddenCount > 0) {
+        html += '<button class="expand-btn" id="expandBtn" onclick="toggleAlerts()">' +
+            '<span id="expandText">' + (alertsExpanded ? '▲ 접기' : '▼ ' + hiddenCount + '건 더 보기') + '</span>' +
+        '</button>';
+    }
+    
+    container.innerHTML = html;
+    document.getElementById('alertTotalText').textContent = alerts.length + '건';
+}
+
+function toggleAlerts() {
+    alertsExpanded = !alertsExpanded;
+    renderAlerts();
+}
+
+function goToDetail(itemId) {
+    location.href = 'm_9_5_0.html?detail=' + itemId;
+}
+
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>

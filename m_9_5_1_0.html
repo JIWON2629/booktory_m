@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>재고실사 - KSI OSP</title>
+    <link rel="stylesheet" href="./css/mobile-common.css">
+    <style>
+        body { background: #f5f5f5; padding-bottom: 140px; }
+        .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: white; }
+        .sub-header { position: relative; background: white; padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; }
+        .sub-header-title { font-size: 17px; font-weight: bold; flex: 1; }
+        .btn-back { background: none; border: none; font-size: 20px; color: #333; padding: 5px; }
+        .btn-sm { padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 6px; font-size: 12px; color: #666; }
+        .tabs { display: flex; background: white; border-bottom: 1px solid #eee; }
+        .tab-btn { flex: 1; padding: 12px 8px; border: none; background: none; font-size: 14px; color: #666; font-weight: 500; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #4caf50; border-bottom-color: #4caf50; }
+        .search-section { background: white; padding: 12px 15px; border-bottom: 1px solid #eee; }
+        .search-input { width: 100%; padding: 12px; border: 2px solid #4caf50; border-radius: 8px; font-size: 15px; box-sizing: border-box; }
+        .search-input:focus { outline: none; border-color: #2e7d32; }
+        .main-content { margin-top: 160px; padding: 15px; }
+        .check-item { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; }
+        .check-item.highlight { border: 2px solid #4caf50; background: #e8f5e9; }
+        .check-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .check-item-name { font-weight: bold; font-size: 15px; }
+        .check-item-code { font-size: 13px; color: #888; margin-top: 2px; }
+        .check-item-row { display: flex; gap: 12px; align-items: center; }
+        .check-item-col { flex: 1; text-align: center; }
+        .check-label { font-size: 13px; color: #888; margin-bottom: 4px; }
+        .check-value { font-size: 20px; font-weight: bold; }
+        .check-value.system { color: #1a73e8; }
+        .check-value.actual { color: #4caf50; }
+        .check-value.diff { color: #f44336; }
+        .check-value.diff.plus { color: #4caf50; }
+        .check-input { width: 100%; padding: 12px; border: 2px solid #4caf50; border-radius: 8px; font-size: 18px; text-align: center; font-weight: bold; box-sizing: border-box; }
+        .check-status { padding: 5px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .check-status.pending { background: #f5f5f5; color: #666; }
+        .check-status.done { background: #e8f5e9; color: #2e7d32; }
+        .check-status.diff { background: #ffebee; color: #c62828; }
+        .progress-bar { height: 10px; background: #e0e0e0; border-radius: 5px; margin-bottom: 15px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #4caf50; transition: width 0.3s; }
+        .summary-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .summary-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+        .bottom-actions { position: fixed; bottom: 56px; left: 0; right: 0; padding: 12px 15px; background: white; border-top: 1px solid #eee; display: flex; gap: 10px; z-index: 90; }
+        .bottom-actions .btn { flex: 1; padding: 13px; font-size: 14px; border-radius: 6px; border: 1px solid #ddd; background: white; }
+        .bottom-actions .btn-primary { background: #4caf50; color: white; border-color: #4caf50; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #eee; z-index: 100; height: 56px; }
+        .nav-item { flex: 1; padding: 8px 5px; text-align: center; font-size: 11px; color: #666; text-decoration: none; }
+        .nav-icon { font-size: 20px; margin-bottom: 2px; }
+        .toast { position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; z-index: 400; opacity: 0; transition: opacity 0.3s; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="fixed-header">
+        <div class="sub-header">
+            <button class="btn-back" onclick="location.href='m_9_1_0.html'">←</button>
+            <div class="sub-header-title">📊 재고실사</div>
+            <button class="btn-sm" onclick="resetCheck()">초기화</button>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="product" onclick="switchTab('product')">📦 완제품</button>
+            <button class="tab-btn" data-tab="supply" onclick="switchTab('supply')">🔧 부자재</button>
+            <button class="tab-btn" data-tab="packaging" onclick="switchTab('packaging')">📦 포장재</button>
+        </div>
+        <div class="search-section">
+            <div style="display:flex;gap:8px;">
+                <input type="text" class="search-input" id="searchInput" placeholder="🔍 제작번호, ISBN, 바코드, 품목명 검색" onkeypress="handleSearchKeypress(event)" style="flex:1;">
+                <button onclick="doSearch()" style="padding:12px 16px;background:#4caf50;color:white;border:none;border-radius:8px;font-size:14px;font-weight:bold;white-space:nowrap;">검색</button>
+            </div>
+        </div>
+    </div>
+    <div class="main-content">
+        <div class="summary-card">
+            <div style="font-weight:bold; font-size:15px; margin-bottom:12px;">📋 실사 진행률</div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+            <div class="summary-row"><span>전체 품목</span><span id="totalCount">0건</span></div>
+            <div class="summary-row"><span>완료</span><span id="doneCount" style="color:#4caf50">0건</span></div>
+            <div class="summary-row"><span>차이 발생</span><span id="diffCount" style="color:#f44336">0건</span></div>
+        </div>
+        <div id="checkList"></div>
+    </div>
+    <div class="bottom-actions">
+        <button class="btn" onclick="saveDraft()">임시저장</button>
+        <button class="btn btn-primary" onclick="submitCheck()">📊 실사완료</button>
+    </div>
+    <div class="bottom-nav">
+        <a href="m_0_0_3.html" class="nav-item"><div class="nav-icon">🏠</div>홈</a>
+        <a href="m_3_1_0.html" class="nav-item"><div class="nav-icon">📋</div>주문</a>
+        <a href="m_5_1_1.html" class="nav-item"><div class="nav-icon">🖨️</div>인쇄</a>
+        <a href="m_6_1_1.html" class="nav-item"><div class="nav-icon">📚</div>제본</a>
+        <a href="m_7_1_1.html" class="nav-item"><div class="nav-icon">📦</div>출고</a>
+    </div>
+<script>
+let currentTab = 'product';
+let checkData = { product: [], supply: [], packaging: [] };
+let highlightedItemId = null;
+
+const productItems = [
+    { id: '28646', barcode: '9788955123456', isbn: '978-89-5512-345-6', name: '문법 탄탄 Writing 2', systemQty: 800, unit: '부' },
+    { id: '28645', barcode: '9788955123457', isbn: '978-89-5512-345-7', name: '한국사 연구방법론', systemQty: 500, unit: '부' },
+    { id: '28644', barcode: '9788955123458', isbn: '978-89-5512-345-8', name: '임상의학 핸드북', systemQty: 1000, unit: '부' },
+    { id: '28643', barcode: '9788955123459', isbn: '978-89-5512-345-9', name: 'AI 프로그래밍 입문', systemQty: 1200, unit: '부' },
+    { id: '28642', barcode: '9788955123460', isbn: '978-89-5512-346-0', name: '수능특강 국어', systemQty: 3000, unit: '부' },
+    { id: '28641', barcode: '9788955123461', isbn: '978-89-5512-346-1', name: '민법총론 개정판', systemQty: 1500, unit: '부' },
+    { id: '28640', barcode: '9788955123462', isbn: '978-89-5512-346-2', name: '2025 교육백서', systemQty: 2500, unit: '부' }
+];
+const supplyItems = [
+    { id: 'INK-C', barcode: '8801234567890', name: 'Cyan 잉크', systemQty: 12, unit: 'kg' },
+    { id: 'INK-M', barcode: '8801234567891', name: 'Magenta 잉크', systemQty: 2, unit: 'kg' },
+    { id: 'INK-Y', barcode: '8801234567892', name: 'Yellow 잉크', systemQty: 15, unit: 'kg' },
+    { id: 'INK-K', barcode: '8801234567893', name: 'Black 잉크', systemQty: 20, unit: 'kg' },
+    { id: 'ADH-PUR', barcode: '8801234567894', name: 'PUR 접착제', systemQty: 8, unit: 'kg' },
+    { id: 'ADH-HM', barcode: '8801234567895', name: '핫멜트 접착제', systemQty: 25, unit: 'kg' }
+];
+const packagingItems = [
+    { id: 'BOX-S', barcode: '8809876543210', name: '소형 박스', systemQty: 250, unit: '개' },
+    { id: 'BOX-M', barcode: '8809876543211', name: '중형 박스', systemQty: 45, unit: '개' },
+    { id: 'BOX-L', barcode: '8809876543212', name: '대형 박스', systemQty: 100, unit: '개' },
+    { id: 'TAPE-B', barcode: '8809876543213', name: '포장테이프(갈색)', systemQty: 50, unit: '롤' },
+    { id: 'WRAP-S', barcode: '8809876543214', name: '스트레치필름', systemQty: 30, unit: '롤' }
+];
+
+function initPage() {
+    checkData.product = productItems.map(function(i) { return Object.assign({}, i, { actualQty: null, status: 'pending' }); });
+    checkData.supply = supplyItems.map(function(i) { return Object.assign({}, i, { actualQty: null, status: 'pending' }); });
+    checkData.packaging = packagingItems.map(function(i) { return Object.assign({}, i, { actualQty: null, status: 'pending' }); });
+    renderAll();
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    highlightedItemId = null;
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.tab === tab); });
+    renderList();
+}
+
+function renderAll() { renderList(); renderSummary(); }
+
+function handleSearchKeypress(e) {
+    if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        doSearch();
+    }
+}
+
+function doSearch() {
+    var keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+    if (!keyword) {
+        highlightedItemId = null;
+        renderList();
+        return;
+    }
+    
+    var allItems = checkData.product.concat(checkData.supply).concat(checkData.packaging);
+    var found = null;
+    for (var i = 0; i < allItems.length; i++) {
+        var item = allItems[i];
+        if (item.id.toLowerCase().indexOf(keyword) !== -1 ||
+            item.name.toLowerCase().indexOf(keyword) !== -1 ||
+            (item.barcode && item.barcode.indexOf(keyword) !== -1) ||
+            (item.isbn && item.isbn.toLowerCase().indexOf(keyword) !== -1)) {
+            found = item;
+            break;
+        }
+    }
+    
+    if (found) {
+        var foundInProduct = false, foundInSupply = false;
+        for (var j = 0; j < checkData.product.length; j++) {
+            if (checkData.product[j].id === found.id) { foundInProduct = true; break; }
+        }
+        if (!foundInProduct) {
+            for (var k = 0; k < checkData.supply.length; k++) {
+                if (checkData.supply[k].id === found.id) { foundInSupply = true; break; }
+            }
+        }
+        
+        if (foundInProduct) {
+            currentTab = 'product';
+        } else if (foundInSupply) {
+            currentTab = 'supply';
+        } else {
+            currentTab = 'packaging';
+        }
+        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.tab === currentTab); });
+        
+        highlightedItemId = found.id;
+        renderList();
+        
+        setTimeout(function() {
+            var input = document.getElementById('input-' + found.id);
+            if (input) {
+                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(function() {
+                    input.focus();
+                    input.select();
+                }, 300);
+            }
+        }, 100);
+    } else {
+        highlightedItemId = null;
+        renderList();
+        showToast('검색 결과가 없습니다');
+    }
+}
+
+function renderList() {
+    var items = checkData[currentTab];
+    var html = '';
+    for (var idx = 0; idx < items.length; idx++) {
+        var item = items[idx];
+        var diff = item.actualQty !== null ? item.actualQty - item.systemQty : null;
+        var diffClass = diff === null ? '' : (diff === 0 ? '' : (diff > 0 ? 'plus' : ''));
+        var diffText = diff === null ? '-' : (diff >= 0 ? '+' + diff : diff);
+        var statusClass = item.status;
+        var statusText = item.status === 'pending' ? '미완료' : (item.status === 'done' ? '완료' : '차이');
+        var isHighlighted = item.id === highlightedItemId;
+        
+        html += '<div class="check-item' + (isHighlighted ? ' highlight' : '') + '">' +
+            '<div class="check-item-header">' +
+                '<div><div class="check-item-name">' + item.name + '</div><div class="check-item-code">' + item.id + (item.barcode ? ' · ' + item.barcode : '') + '</div></div>' +
+                '<span class="check-status ' + statusClass + '">' + statusText + '</span>' +
+            '</div>' +
+            '<div class="check-item-row">' +
+                '<div class="check-item-col"><div class="check-label">시스템</div><div class="check-value system">' + item.systemQty.toLocaleString() + '</div></div>' +
+                '<div class="check-item-col"><div class="check-label">실수량</div><input type="number" class="check-input" id="input-' + item.id + '" value="' + (item.actualQty !== null ? item.actualQty : '') + '" placeholder="입력" onchange="updateActual(\'' + currentTab + '\',' + idx + ',this.value)"></div>' +
+                '<div class="check-item-col"><div class="check-label">차이</div><div class="check-value diff ' + diffClass + '">' + diffText + '</div></div>' +
+            '</div>' +
+        '</div>';
+    }
+    document.getElementById('checkList').innerHTML = html;
+}
+
+function updateActual(tab, idx, val) {
+    var qty = val === '' ? null : parseInt(val);
+    checkData[tab][idx].actualQty = qty;
+    if (qty === null) {
+        checkData[tab][idx].status = 'pending';
+    } else if (qty === checkData[tab][idx].systemQty) {
+        checkData[tab][idx].status = 'done';
+    } else {
+        checkData[tab][idx].status = 'diff';
+    }
+    renderAll();
+    
+    // 실수량 입력 후 검색창으로 커서 이동
+    if (qty !== null) {
+        setTimeout(function() {
+            var searchInput = document.getElementById('searchInput');
+            searchInput.value = '';
+            searchInput.focus();
+        }, 100);
+    }
+}
+
+function renderSummary() {
+    var all = checkData.product.concat(checkData.supply).concat(checkData.packaging);
+    var total = all.length;
+    var done = 0, diff = 0;
+    for (var i = 0; i < all.length; i++) {
+        if (all[i].status !== 'pending') done++;
+        if (all[i].status === 'diff') diff++;
+    }
+    
+    document.getElementById('totalCount').textContent = total + '건';
+    document.getElementById('doneCount').textContent = done + '건';
+    document.getElementById('diffCount').textContent = diff + '건';
+    document.getElementById('progressFill').style.width = (total > 0 ? Math.round(done / total * 100) : 0) + '%';
+}
+
+function resetCheck() {
+    if (!confirm('실사 데이터를 초기화하시겠습니까?')) return;
+    localStorage.removeItem('stockCheckResult');
+    initPage();
+    showToast('초기화되었습니다');
+}
+
+function saveDraft() {
+    localStorage.setItem('stockCheckDraft', JSON.stringify(checkData));
+    showToast('임시저장되었습니다');
+}
+
+function submitCheck() {
+    var all = checkData.product.concat(checkData.supply).concat(checkData.packaging);
+    var pending = 0;
+    var diffItems = [];
+    
+    for (var i = 0; i < all.length; i++) {
+        if (all[i].status === 'pending') pending++;
+        if (all[i].status === 'diff') {
+            diffItems.push({
+                id: all[i].id,
+                name: all[i].name,
+                barcode: all[i].barcode || '',
+                systemQty: all[i].systemQty,
+                actualQty: all[i].actualQty,
+                unit: all[i].unit,
+                type: getItemType(all[i].id)
+            });
+        }
+    }
+    
+    if (pending > 0) {
+        if (!confirm(pending + '건이 미완료입니다. 계속하시겠습니까?')) return;
+    }
+    
+    // 실사 결과 저장 (차이 발생 품목)
+    var result = {
+        date: new Date().toISOString().split('T')[0],
+        timestamp: new Date().toISOString(),
+        diffCount: diffItems.length,
+        items: diffItems
+    };
+    
+    localStorage.setItem('stockCheckResult', JSON.stringify(result));
+    localStorage.removeItem('stockCheckDraft');
+    
+    if (diffItems.length > 0) {
+        showToast('실사 완료! 차이 ' + diffItems.length + '건 발생');
+        setTimeout(function() {
+            if (confirm('차이 발생 품목이 있습니다. 재고조정 페이지로 이동하시겠습니까?')) {
+                location.href = 'm_9_8_0.html';
+            } else {
+                location.href = 'm_9_1_0.html';
+            }
+        }, 500);
+    } else {
+        showToast('실사 완료! 모든 재고가 일치합니다.');
+        setTimeout(function() {
+            location.href = 'm_9_1_0.html';
+        }, 1500);
+    }
+}
+
+function getItemType(id) {
+    for (var i = 0; i < checkData.product.length; i++) {
+        if (checkData.product[i].id === id) return 'product';
+    }
+    for (var i = 0; i < checkData.supply.length; i++) {
+        if (checkData.supply[i].id === id) return 'supply';
+    }
+    return 'packaging';
+}
+
+function showToast(msg) {
+    var t = document.querySelector('.toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.className = 'toast';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    setTimeout(function() { t.style.opacity = '0'; }, 2000);
+}
+
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>

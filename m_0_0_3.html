@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KSI OSP - 모바일</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #f5f5f5; 
+            min-height: 100vh;
+            padding-bottom: 70px;
+        }
+        
+        /* 상단 헤더 */
+        .header {
+            background: #333;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .header-logo .ksi {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a5dad;
+            font-style: italic;
+            font-family: 'Arial', sans-serif;
+        }
+        .header-logo .osp {
+            background: #ff6b35;
+            color: white;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        /* 알림 배지 */
+        .notification-badge {
+            background: #1a73e8;
+            color: white;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .notification-badge:active {
+            background: #1557b0;
+        }
+        
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            padding: 5px;
+            cursor: pointer;
+        }
+        .user-icon {
+            width: 28px;
+            height: 28px;
+            border: 2px solid #666;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .user-icon svg {
+            width: 16px;
+            height: 16px;
+            fill: #999;
+        }
+        
+        /* 마이페이지 드롭다운 */
+        .mypage-dropdown {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            min-width: 140px;
+            z-index: 150;
+        }
+        .mypage-dropdown.show {
+            display: block;
+        }
+        .mypage-dropdown-header {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        .mypage-dropdown-header .user-icon-large {
+            width: 45px;
+            height: 45px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mypage-dropdown-header .user-icon-large svg {
+            width: 26px;
+            height: 26px;
+            fill: #999;
+        }
+        .mypage-dropdown-menu {
+            padding: 8px 0;
+        }
+        .mypage-dropdown-menu a {
+            display: block;
+            padding: 12px 15px;
+            color: #333;
+            text-decoration: none;
+            font-size: 13px;
+            text-align: center;
+        }
+        .mypage-dropdown-menu a:active {
+            background: #f5f5f5;
+        }
+        
+        /* 메인 컨텐츠 */
+        .main-content {
+            padding: 20px 15px;
+        }
+        
+        .welcome-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .welcome-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+        .welcome-logo .ksi {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1a5dad;
+            font-style: italic;
+            font-family: 'Arial', sans-serif;
+        }
+        .welcome-logo .osp {
+            background: #ff6b35;
+            color: white;
+            padding: 4px 10px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        .welcome-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .welcome-subtitle {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        /* 퀵 메뉴 - 7개 항목 */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .quick-link {
+            background: white;
+            padding: 20px 15px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #333;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        .quick-link:active {
+            transform: scale(0.98);
+            background: #f8f8f8;
+        }
+        .quick-link-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .quick-link-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        /* 마지막 항목(재고관리)을 전체 너비로 */
+        .quick-link.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        /* 아이콘별 색상 */
+        .quick-link.order .quick-link-icon { color: #1a73e8; }
+        .quick-link.production .quick-link-icon { color: #4caf50; }
+        .quick-link.print .quick-link-icon { color: #ff9800; }
+        .quick-link.binding .quick-link-icon { color: #9c27b0; }
+        .quick-link.shipping .quick-link-icon { color: #00bcd4; }
+        .quick-link.paper .quick-link-icon { color: #795548; }
+        .quick-link.inventory .quick-link-icon { color: #607d8b; }
+        
+        /* 하단 네비게이션 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            border-top: 1px solid #eee;
+            z-index: 100;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        .nav-item {
+            flex: 1;
+            padding: 10px 5px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            text-decoration: none;
+            border: none;
+            background: none;
+        }
+        .nav-item.active {
+            color: #1a73e8;
+        }
+        .nav-icon {
+            font-size: 18px;
+            margin-bottom: 2px;
+        }
+        
+        /* 사이드 메뉴 */
+        .side-menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+        }
+        .side-menu-overlay.show {
+            display: block;
+        }
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -280px;
+            width: 280px;
+            height: 100%;
+            background: white;
+            z-index: 201;
+            transition: right 0.3s;
+            overflow-y: auto;
+        }
+        .side-menu-overlay.show .side-menu {
+            right: 0;
+        }
+        .side-menu-header {
+            background: #333;
+            padding: 20px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .side-menu-logo {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .side-menu-logo .ksi {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a5dad;
+            font-style: italic;
+        }
+        .side-menu-logo .osp {
+            background: #ff6b35;
+            color: white;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+        .side-menu-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .side-menu-list {
+            padding: 10px 0;
+        }
+        .side-menu-item {
+            display: block;
+            padding: 15px 20px;
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .side-menu-item:active {
+            background: #f5f5f5;
+        }
+        .side-menu-item.highlight {
+            color: #1a5dad;
+        }
+        .side-menu-logout {
+            margin: 20px 15px;
+            padding: 14px;
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            width: calc(100% - 30px);
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-logo">
+            <span class="ksi">KSI</span>
+            <span class="osp">OSP</span>
+        </div>
+        <div class="header-right">
+            <a href="m_14_1_0.html" class="notification-badge">12</a>
+            <div class="user-icon" onclick="toggleMypage(event)">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <button class="menu-btn" onclick="openSideMenu()">☰</button>
+        </div>
+        <div class="mypage-dropdown" id="mypageDropdown">
+            <div class="mypage-dropdown-header">
+                <div class="user-icon-large">
+                    <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                </div>
+            </div>
+            <div class="mypage-dropdown-menu">
+                <a href="m_1_1_0.html">정보수정</a>
+                <a href="m_1_2_0.html">My주문</a>
+                <a href="m_1_3_0.html">My매출</a>
+                <a href="m_1_4_0.html">주문템플릿</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="welcome-card">
+            <div class="welcome-logo">
+                <span class="ksi">KSI</span>
+                <span class="osp">OSP</span>
+            </div>
+            <h1 class="welcome-title">북토리 오프셋 생산관리</h1>
+            <p class="welcome-subtitle">Offset Printing Production Management</p>
+        </div>
+        
+        <div class="quick-links">
+            <a href="m_3_1_0.html" class="quick-link order">
+                <div class="quick-link-icon">📋</div>
+                <div class="quick-link-text">주문현황</div>
+            </a>
+            <a href="m_4_0_0.html" class="quick-link production">
+                <div class="quick-link-icon">⚙️</div>
+                <div class="quick-link-text">생산관리</div>
+            </a>
+            <a href="m_5_1_1.html" class="quick-link print">
+                <div class="quick-link-icon">🖨️</div>
+                <div class="quick-link-text">인쇄현황</div>
+            </a>
+            <a href="m_6_1_1.html" class="quick-link binding">
+                <div class="quick-link-icon">📚</div>
+                <div class="quick-link-text">제본현황</div>
+            </a>
+            <a href="m_7_1_1.html" class="quick-link shipping">
+                <div class="quick-link-icon">📦</div>
+                <div class="quick-link-text">출고현황</div>
+            </a>
+            <a href="m_8_0_0.html" class="quick-link paper">
+                <div class="quick-link-icon">📄</div>
+                <div class="quick-link-text">용지관리</div>
+            </a>
+            <a href="m_9_1_0.html" class="quick-link inventory full-width">
+                <div class="quick-link-icon">🏭</div>
+                <div class="quick-link-text">재고관리</div>
+            </a>
+        </div>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="m_0_0_3.html" class="nav-item active"><div class="nav-icon">🏠</div>홈</a>
+        <a href="m_3_1_0.html" class="nav-item"><div class="nav-icon">📋</div>주문</a>
+        <a href="m_5_1_1.html" class="nav-item"><div class="nav-icon">🖨️</div>인쇄</a>
+        <a href="m_6_1_1.html" class="nav-item"><div class="nav-icon">📚</div>제본</a>
+        <a href="m_7_1_1.html" class="nav-item"><div class="nav-icon">📦</div>출고</a>
+    </div>
+    
+    <!-- 사이드 메뉴 -->
+    <div class="side-menu-overlay" id="sideMenuOverlay" onclick="closeSideMenu()">
+        <div class="side-menu" onclick="event.stopPropagation()">
+            <div class="side-menu-header">
+                <div class="side-menu-logo">
+                    <span class="ksi">KSI</span>
+                    <span class="osp">OSP</span>
+                </div>
+                <button class="side-menu-close" onclick="closeSideMenu()">×</button>
+            </div>
+            <div class="side-menu-list">
+                <a href="m_3_1_0.html" class="side-menu-item">주문</a>
+                <a href="m_4_0_0.html" class="side-menu-item">생산</a>
+                <a href="m_5_1_1.html" class="side-menu-item">인쇄</a>
+                <a href="m_6_1_1.html" class="side-menu-item">제본</a>
+                <a href="m_7_1_1.html" class="side-menu-item">출고</a>
+                <a href="m_8_0_0.html" class="side-menu-item">용지</a>
+                <a href="m_9_1_0.html" class="side-menu-item">재고</a>
+                <a href="m_10_1_0.html" class="side-menu-item highlight">견적</a>
+                <a href="m_11_1_0.html" class="side-menu-item highlight">통계</a>
+                <a href="m_12_1_0.html" class="side-menu-item highlight">매출</a>
+                <a href="m_13_1_0.html" class="side-menu-item">설정</a>
+            </div>
+            <button class="side-menu-logout" onclick="location.href='m_0_0_1.html'">로그아웃</button>
+        </div>
+    </div>
+
+<script>
+function toggleMypage(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('mypageDropdown');
+    dropdown.classList.toggle('show');
+}
+
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('mypageDropdown');
+    if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+
+function openSideMenu() {
+    document.getElementById('sideMenuOverlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSideMenu() {
+    document.getElementById('sideMenuOverlay').classList.remove('show');
+    document.body.style.overflow = '';
+}
+</script>
+</body>
+</html>

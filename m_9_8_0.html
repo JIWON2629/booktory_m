@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>재고조정 - KSI OSP</title>
+    <link rel="stylesheet" href="./css/mobile-common.css">
+    <style>
+        body { background: #f5f5f5; padding-bottom: 200px; }
+        .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: white; }
+        .sub-header { background: white; padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; }
+        .btn-back { background: none; border: none; font-size: 20px; color: #333; padding: 5px; }
+        .sub-header-title { font-size: 17px; font-weight: bold; flex: 1; }
+        .sub-header-actions { display: flex; gap: 8px; }
+        .btn-select-all { padding: 6px 12px; border: 1px solid #9c27b0; background: white; border-radius: 6px; font-size: 12px; color: #9c27b0; }
+        .btn-select-all.active { background: #9c27b0; color: white; }
+        
+        .summary-card { background: linear-gradient(135deg, #9c27b0, #7b1fa2); color: white; margin: 15px; margin-top: 65px; border-radius: 12px; padding: 16px; }
+        .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .summary-title { font-size: 15px; font-weight: bold; }
+        .summary-date { font-size: 12px; opacity: 0.8; }
+        .summary-stats { display: flex; gap: 15px; }
+        .summary-stat { text-align: center; flex: 1; }
+        .summary-stat-value { font-size: 22px; font-weight: bold; }
+        .summary-stat-label { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+        .summary-stat-value.increase { color: #81c784; }
+        .summary-stat-value.decrease { color: #ef9a9a; }
+        
+        .main-content { padding: 0 15px 15px; }
+        
+        .adjust-item { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); position: relative; }
+        .adjust-item.selected { border: 2px solid #9c27b0; background: #f3e5f5; }
+        .adjust-item-checkbox { position: absolute; top: 15px; right: 15px; width: 24px; height: 24px; border: 2px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: white; cursor: pointer; }
+        .adjust-item-checkbox.checked { background: #9c27b0; border-color: #9c27b0; color: white; }
+        
+        .adjust-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; padding-right: 35px; }
+        .adjust-item-name { font-weight: bold; font-size: 15px; margin-bottom: 3px; }
+        .adjust-item-code { font-size: 13px; color: #888; }
+        .adjust-item-badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .adjust-item-badge.increase { background: #e8f5e9; color: #2e7d32; }
+        .adjust-item-badge.decrease { background: #ffebee; color: #c62828; }
+        
+        .adjust-qty-row { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 8px; align-items: center; margin-bottom: 12px; }
+        .adjust-qty-box { text-align: center; padding: 10px 8px; background: #f5f5f5; border-radius: 8px; }
+        .adjust-qty-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+        .adjust-qty-value { font-size: 18px; font-weight: bold; }
+        .adjust-qty-value.system { color: #1a73e8; }
+        .adjust-qty-value.actual { color: #4caf50; }
+        .adjust-qty-value.diff { color: #f44336; }
+        .adjust-qty-value.diff.plus { color: #4caf50; }
+        .adjust-arrow { font-size: 18px; color: #999; }
+        
+        .adjust-input-row { display: flex; gap: 10px; align-items: center; }
+        .adjust-input-label { font-size: 13px; color: #666; white-space: nowrap; }
+        .adjust-input { flex: 1; padding: 10px; border: 2px solid #9c27b0; border-radius: 8px; font-size: 16px; text-align: center; font-weight: bold; }
+        .adjust-unit { font-size: 14px; color: #666; }
+        
+        .bottom-form { position: fixed; bottom: 56px; left: 0; right: 0; background: white; border-top: 1px solid #eee; padding: 12px 15px; z-index: 90; }
+        .form-row { margin-bottom: 10px; }
+        .form-label { font-size: 12px; color: #666; margin-bottom: 5px; display: block; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+        .form-control:focus { border-color: #9c27b0; outline: none; }
+        .btn-submit { width: 100%; padding: 14px; background: #9c27b0; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; margin-top: 8px; }
+        .btn-submit:disabled { background: #ccc; }
+        .btn-submit:active { background: #7b1fa2; }
+        
+        .progress-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 500; align-items: center; justify-content: center; flex-direction: column; }
+        .progress-overlay.show { display: flex; }
+        .progress-text { color: white; font-size: 16px; margin-bottom: 15px; }
+        .progress-bar-container { width: 80%; max-width: 300px; height: 8px; background: rgba(255,255,255,0.3); border-radius: 4px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: #9c27b0; transition: width 0.3s; }
+        .progress-count { color: white; font-size: 14px; margin-top: 10px; }
+        
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #eee; z-index: 100; height: 56px; }
+        .nav-item { flex: 1; padding: 8px 5px; text-align: center; font-size: 11px; color: #666; text-decoration: none; }
+        .nav-icon { font-size: 20px; margin-bottom: 2px; }
+        
+        .empty-state { padding: 60px 20px; text-align: center; color: #888; }
+        .empty-icon { font-size: 60px; margin-bottom: 15px; }
+        .empty-title { font-size: 16px; margin-bottom: 8px; color: #333; }
+        .empty-desc { font-size: 14px; }
+        
+        .toast { position: fixed; bottom: 220px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 12px 24px; border-radius: 8px; z-index: 400; opacity: 0; transition: opacity 0.3s; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="fixed-header">
+        <div class="sub-header">
+            <button class="btn-back" onclick="location.href='m_9_1_0.html'">←</button>
+            <div class="sub-header-title">⚖️ 재고조정</div>
+            <div class="sub-header-actions">
+                <button class="btn-select-all" id="selectAllBtn" onclick="toggleSelectAll()">전체선택</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="summary-card">
+        <div class="summary-header">
+            <span class="summary-title">📊 재고 실사 결과</span>
+            <span class="summary-date" id="checkDate">실사일: 2025-01-08</span>
+        </div>
+        <div class="summary-stats">
+            <div class="summary-stat">
+                <div class="summary-stat-value" id="totalCount">3</div>
+                <div class="summary-stat-label">조정 대상</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value increase" id="increaseTotal">+50</div>
+                <div class="summary-stat-label">증가</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-stat-value decrease" id="decreaseTotal">-120</div>
+                <div class="summary-stat-label">감소</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content" id="adjustList"></div>
+    
+    <div class="bottom-form">
+        <div class="form-row">
+            <label class="form-label">조정 사유 *</label>
+            <select class="form-control" id="adjustReason">
+                <option value="재고 실사 결과 반영">재고 실사 결과 반영</option>
+                <option value="파손/훼손">파손/훼손</option>
+                <option value="반품 처리">반품 처리</option>
+                <option value="입력 오류 수정">입력 오류 수정</option>
+                <option value="기타">기타</option>
+            </select>
+        </div>
+        <div class="form-row">
+            <label class="form-label">비고</label>
+            <input type="text" class="form-control" id="adjustNote" placeholder="비고 입력">
+        </div>
+        <button class="btn-submit" id="submitBtn" onclick="submitAdjustment()">
+            <span id="submitText">선택 품목 조정 반영 (0건)</span>
+        </button>
+    </div>
+    
+    <div class="progress-overlay" id="progressOverlay">
+        <div class="progress-text">재고 조정 중...</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="progress-count" id="progressCount">0 / 0</div>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="m_0_0_3.html" class="nav-item"><div class="nav-icon">🏠</div>홈</a>
+        <a href="m_3_1_0.html" class="nav-item"><div class="nav-icon">📋</div>주문</a>
+        <a href="m_5_1_1.html" class="nav-item"><div class="nav-icon">🖨️</div>인쇄</a>
+        <a href="m_6_1_1.html" class="nav-item"><div class="nav-icon">📚</div>제본</a>
+        <a href="m_7_1_1.html" class="nav-item"><div class="nav-icon">📦</div>출고</a>
+    </div>
+
+<script>
+var adjustItems = [];
+var selectedItems = [];
+var stockCheckResult = null;
+
+function initPage() {
+    // localStorage에서 재고 실사 결과 가져오기
+    try {
+        stockCheckResult = JSON.parse(localStorage.getItem('stockCheckResult'));
+    } catch(e) {
+        stockCheckResult = null;
+    }
+    
+    if (!stockCheckResult || !stockCheckResult.items || stockCheckResult.items.length === 0) {
+        // 실사 결과가 없으면 빈 상태 표시
+        adjustItems = [];
+        document.getElementById('checkDate').textContent = '실사 결과 없음';
+    } else {
+        // 실사 결과에서 조정 대상 생성
+        adjustItems = stockCheckResult.items.map(function(item) {
+            var diff = item.actualQty - item.systemQty;
+            return {
+                id: item.id,
+                name: item.name,
+                systemQty: item.systemQty,
+                actualQty: item.actualQty,
+                diff: diff,
+                adjustQty: diff, // 기본값: 실사 결과 기준 차이값
+                unit: item.unit,
+                type: item.type,
+                selected: false
+            };
+        });
+        
+        // 실사일 표시
+        document.getElementById('checkDate').textContent = '실사일: ' + stockCheckResult.date;
+        document.getElementById('adjustNote').value = '재고 실사 결과 반영 (실사일: ' + stockCheckResult.date + ')';
+    }
+    
+    // 기본 비고 설정 (실사 결과가 없을 경우)
+    if (!document.getElementById('adjustNote').value) {
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById('adjustNote').value = '재고 실사 결과 반영 (실사일: ' + today + ')';
+    }
+    
+    renderList();
+    updateSummary();
+    updateSubmitButton();
+}
+
+function renderList() {
+    var container = document.getElementById('adjustList');
+    
+    if (adjustItems.length === 0) {
+        container.innerHTML = '<div class="empty-state">' +
+            '<div class="empty-icon">✅</div>' +
+            '<div class="empty-title">조정 대상이 없습니다</div>' +
+            '<div class="empty-desc">재고 실사 결과와 시스템 재고가 일치합니다.</div>' +
+            '</div>';
+        document.querySelector('.bottom-form').style.display = 'none';
+        return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < adjustItems.length; i++) {
+        var item = adjustItems[i];
+        var isSelected = item.selected;
+        var diffText = item.diff >= 0 ? '+' + item.diff : item.diff;
+        var diffClass = item.diff >= 0 ? 'plus' : '';
+        var badgeClass = item.diff >= 0 ? 'increase' : 'decrease';
+        var badgeText = item.diff >= 0 ? '▲ 증가' : '▼ 감소';
+        
+        html += '<div class="adjust-item' + (isSelected ? ' selected' : '') + '" onclick="toggleItem(' + i + ')">' +
+            '<div class="adjust-item-checkbox' + (isSelected ? ' checked' : '') + '">' + (isSelected ? '✓' : '') + '</div>' +
+            '<div class="adjust-item-header">' +
+                '<div>' +
+                    '<div class="adjust-item-name">' + item.name + '</div>' +
+                    '<div class="adjust-item-code">' + item.id + '</div>' +
+                '</div>' +
+                '<span class="adjust-item-badge ' + badgeClass + '">' + badgeText + '</span>' +
+            '</div>' +
+            '<div class="adjust-qty-row">' +
+                '<div class="adjust-qty-box">' +
+                    '<div class="adjust-qty-label">시스템</div>' +
+                    '<div class="adjust-qty-value system">' + item.systemQty.toLocaleString() + '</div>' +
+                '</div>' +
+                '<div class="adjust-arrow">→</div>' +
+                '<div class="adjust-qty-box">' +
+                    '<div class="adjust-qty-label">실사</div>' +
+                    '<div class="adjust-qty-value actual">' + item.actualQty.toLocaleString() + '</div>' +
+                '</div>' +
+                '<div class="adjust-arrow">=</div>' +
+                '<div class="adjust-qty-box">' +
+                    '<div class="adjust-qty-label">차이</div>' +
+                    '<div class="adjust-qty-value diff ' + diffClass + '">' + diffText + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="adjust-input-row" onclick="event.stopPropagation()">' +
+                '<span class="adjust-input-label">조정수량:</span>' +
+                '<input type="number" class="adjust-input" value="' + item.adjustQty + '" onchange="updateAdjustQty(' + i + ', this.value)" onclick="event.stopPropagation()">' +
+                '<span class="adjust-unit">' + item.unit + '</span>' +
+            '</div>' +
+        '</div>';
+    }
+    
+    container.innerHTML = html;
+}
+
+function toggleItem(index) {
+    adjustItems[index].selected = !adjustItems[index].selected;
+    renderList();
+    updateSelectAllButton();
+    updateSubmitButton();
+}
+
+function toggleSelectAll() {
+    var allSelected = adjustItems.every(function(item) { return item.selected; });
+    
+    for (var i = 0; i < adjustItems.length; i++) {
+        adjustItems[i].selected = !allSelected;
+    }
+    
+    renderList();
+    updateSelectAllButton();
+    updateSubmitButton();
+}
+
+function updateSelectAllButton() {
+    var allSelected = adjustItems.length > 0 && adjustItems.every(function(item) { return item.selected; });
+    var btn = document.getElementById('selectAllBtn');
+    btn.classList.toggle('active', allSelected);
+    btn.textContent = allSelected ? '전체해제' : '전체선택';
+}
+
+function updateAdjustQty(index, value) {
+    adjustItems[index].adjustQty = parseInt(value) || 0;
+}
+
+function updateSummary() {
+    var total = adjustItems.length;
+    var increase = 0, decrease = 0;
+    
+    for (var i = 0; i < adjustItems.length; i++) {
+        if (adjustItems[i].diff > 0) {
+            increase += adjustItems[i].diff;
+        } else {
+            decrease += adjustItems[i].diff;
+        }
+    }
+    
+    document.getElementById('totalCount').textContent = total;
+    document.getElementById('increaseTotal').textContent = '+' + increase;
+    document.getElementById('decreaseTotal').textContent = decrease;
+}
+
+function updateSubmitButton() {
+    var selectedCount = adjustItems.filter(function(item) { return item.selected; }).length;
+    var btn = document.getElementById('submitBtn');
+    var text = document.getElementById('submitText');
+    
+    btn.disabled = selectedCount === 0;
+    text.textContent = '선택 품목 조정 반영 (' + selectedCount + '건)';
+}
+
+function submitAdjustment() {
+    var selectedList = adjustItems.filter(function(item) { return item.selected; });
+    
+    if (selectedList.length === 0) {
+        showToast('조정할 품목을 선택해주세요');
+        return;
+    }
+    
+    var reason = document.getElementById('adjustReason').value;
+    var note = document.getElementById('adjustNote').value;
+    
+    if (!confirm(selectedList.length + '건의 재고를 조정하시겠습니까?\n\n사유: ' + reason)) {
+        return;
+    }
+    
+    // 진행률 표시
+    var overlay = document.getElementById('progressOverlay');
+    var progressFill = document.getElementById('progressFill');
+    var progressCount = document.getElementById('progressCount');
+    overlay.classList.add('show');
+    
+    var processed = 0;
+    var total = selectedList.length;
+    
+    // 선택된 품목 ID 목록
+    var selectedIds = selectedList.map(function(item) { return item.id; });
+    
+    function processNext() {
+        if (processed >= total) {
+            // 완료
+            setTimeout(function() {
+                overlay.classList.remove('show');
+                showToast('재고 조정이 완료되었습니다');
+                
+                // 재고조정 이력 저장 (m_9_5_0, m_9_6_0에서 사용)
+                var adjustmentHistory = [];
+                try {
+                    adjustmentHistory = JSON.parse(localStorage.getItem('stockAdjustmentHistory') || '[]');
+                } catch(e) {}
+                
+                var today = new Date().toISOString().split('T')[0];
+                var now = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                
+                for (var i = 0; i < selectedList.length; i++) {
+                    var item = selectedList[i];
+                    var newStock = item.systemQty + item.adjustQty;
+                    
+                    adjustmentHistory.push({
+                        id: item.id,
+                        name: item.name,
+                        type: item.type,
+                        unit: item.unit,
+                        oldStock: item.systemQty,
+                        newStock: newStock,
+                        adjustQty: item.adjustQty,
+                        reason: reason,
+                        note: note,
+                        date: today,
+                        time: now,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                localStorage.setItem('stockAdjustmentHistory', JSON.stringify(adjustmentHistory));
+                
+                // 처리된 품목 제거
+                adjustItems = adjustItems.filter(function(item) { return !item.selected; });
+                
+                // localStorage의 stockCheckResult 업데이트
+                if (stockCheckResult && stockCheckResult.items) {
+                    stockCheckResult.items = stockCheckResult.items.filter(function(item) {
+                        return selectedIds.indexOf(item.id) === -1;
+                    });
+                    stockCheckResult.diffCount = stockCheckResult.items.length;
+                    
+                    if (stockCheckResult.items.length === 0) {
+                        // 모든 품목이 처리되면 결과 삭제
+                        localStorage.removeItem('stockCheckResult');
+                    } else {
+                        // 남은 품목이 있으면 업데이트
+                        localStorage.setItem('stockCheckResult', JSON.stringify(stockCheckResult));
+                    }
+                }
+                
+                renderList();
+                updateSummary();
+                updateSubmitButton();
+                
+                if (adjustItems.length === 0) {
+                    setTimeout(function() {
+                        location.href = 'm_9_1_0.html';
+                    }, 1000);
+                }
+            }, 500);
+            return;
+        }
+        
+        processed++;
+        var percent = Math.round((processed / total) * 100);
+        progressFill.style.width = percent + '%';
+        progressCount.textContent = processed + ' / ' + total;
+        
+        // 시뮬레이션: 각 품목당 300ms
+        setTimeout(processNext, 300);
+    }
+    
+    processNext();
+}
+
+function showToast(msg) {
+    var t = document.querySelector('.toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.className = 'toast';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    setTimeout(function() { t.style.opacity = '0'; }, 2500);
+}
+
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>

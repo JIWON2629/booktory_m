@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>파렛트관리 - KSI OSP</title>
+    <link rel="stylesheet" href="./css/mobile-common.css">
+    <style>
+        body { background: #f5f5f5; padding-bottom: 70px; }
+        .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: white; }
+        .sub-header { background: white; padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; }
+        .btn-back { background: none; border: none; font-size: 18px; color: #333; padding: 5px; }
+        .sub-header-title { font-size: 17px; font-weight: bold; flex: 1; }
+        .legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 15px; background: white; border-bottom: 1px solid #eee; }
+        .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #666; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 2px; border: 2px solid; }
+        .legend-dot.empty { background: #f5f5f5; border-color: #ccc; border-style: dashed; }
+        .legend-dot.occupied { background: #e8f5e9; border-color: #4caf50; }
+        .legend-dot.warning { background: #fff3e0; border-color: #ff9800; }
+        .legend-dot.critical { background: #ffebee; border-color: #f44336; }
+        .main-content { margin-top: 95px; padding: 12px; }
+        .warehouse-title { font-weight: bold; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .warehouse-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 15px; }
+        .pallet-cell { aspect-ratio: 1; background: white; border-radius: 6px; border: 2px solid #e0e0e0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; position: relative; }
+        .pallet-cell.empty { background: #f5f5f5; border-style: dashed; }
+        .pallet-cell.empty.selected { border-color: #4caf50; border-style: solid; border-width: 3px; background: #e8f5e9; }
+        .pallet-cell.occupied { border-color: #4caf50; background: #e8f5e9; }
+        .pallet-cell.occupied.selected { border-color: #1a73e8; border-width: 3px; box-shadow: 0 0 8px rgba(26,115,232,0.3); }
+        .pallet-cell.warning { border-color: #ff9800; background: #fff3e0; }
+        .pallet-cell.critical { border-color: #f44336; background: #ffebee; }
+        .pallet-loc { font-weight: bold; color: #333; font-size: 11px; }
+        .pallet-info { font-size: 9px; color: #666; margin-top: 2px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90%; }
+        .pallet-qty { font-size: 9px; color: #1a73e8; font-weight: bold; }
+        .pallet-status { position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; }
+        .pallet-status.normal { background: #4caf50; }
+        .pallet-status.warning { background: #ff9800; }
+        .pallet-status.critical { background: #f44336; }
+        .action-panel { background: white; border-radius: 10px; padding: 12px; margin-bottom: 12px; display: none; }
+        .action-panel.show { display: block; }
+        .action-title { font-weight: bold; font-size: 13px; margin-bottom: 10px; }
+        .selected-info { background: #e3f2fd; border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+        .selected-info-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; }
+        .selected-info-row:last-child { margin-bottom: 0; }
+        .move-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+        .move-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .move-label { width: 60px; font-size: 12px; color: #666; }
+        .move-select { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+        .action-btns { display: flex; gap: 8px; margin-top: 12px; }
+        .action-btns .btn { flex: 1; padding: 10px; border-radius: 6px; font-size: 12px; font-weight: 600; border: 1px solid #ddd; background: white; }
+        .action-btns .btn-primary { background: #1a73e8; color: white; border-color: #1a73e8; }
+        .action-btns .btn-warning { background: #ff9800; color: white; border-color: #ff9800; }
+        .action-btns .btn-success { background: #4caf50; color: white; border-color: #4caf50; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #eee; z-index: 100; height: 56px; }
+        .nav-item { flex: 1; padding: 6px 5px; text-align: center; font-size: 10px; color: #666; text-decoration: none; }
+        .nav-icon { font-size: 18px; margin-bottom: 2px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; width: 90%; max-width: 320px; border-radius: 12px; overflow: hidden; }
+        .modal-header { padding: 12px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 15px; font-weight: bold; }
+        .modal-close { background: none; border: none; font-size: 22px; color: #666; }
+        .modal-body { padding: 15px; }
+        .modal-footer { padding: 12px 15px; border-top: 1px solid #eee; display: flex; gap: 8px; }
+        .modal-footer .btn { flex: 1; padding: 10px; border-radius: 6px; font-weight: 600; font-size: 13px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; font-size: 11px; font-weight: 500; color: #666; margin-bottom: 5px; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
+        .quick-btns { display: flex; gap: 6px; margin-top: 8px; }
+        .quick-btns button { flex: 1; padding: 6px; border: 1px solid #ddd; background: #f5f5f5; border-radius: 4px; font-size: 11px; }
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 6px; z-index: 400; opacity: 0; transition: opacity 0.3s; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="fixed-header">
+        <div class="sub-header">
+            <button class="btn-back" onclick="location.href='m_9_1_0.html'">←</button>
+            <div class="sub-header-title">🏭 파렛트관리</div>
+        </div>
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot empty"></div>빈 자리</div>
+            <div class="legend-item"><div class="legend-dot occupied"></div>정상</div>
+            <div class="legend-item"><div class="legend-dot warning"></div>기한임박</div>
+            <div class="legend-item"><div class="legend-dot critical"></div>만료</div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="warehouse-title">🏭 A동 창고</div>
+        <div class="warehouse-grid" id="warehouseA"></div>
+        
+        <div class="warehouse-title">🏭 B동 창고</div>
+        <div class="warehouse-grid" id="warehouseB"></div>
+        
+        <!-- 빈자리 선택 패널 -->
+        <div class="action-panel" id="emptyPanel">
+            <div class="action-title">📍 빈 자리 선택됨</div>
+            <div class="selected-info" id="emptyInfo"></div>
+            <div class="action-btns">
+                <button class="btn btn-success" onclick="goToInboundEmpty()">📥 입고등록</button>
+            </div>
+        </div>
+        
+        <!-- 품목 선택 패널 -->
+        <div class="action-panel" id="actionPanel">
+            <div class="action-title">📦 선택된 파렛트</div>
+            <div class="selected-info" id="selectedInfo"></div>
+            
+            <div class="move-section">
+                <div class="action-title">📍 위치 이동</div>
+                <div class="move-row">
+                    <span class="move-label">이동 위치</span>
+                    <select class="move-select" id="moveTarget"><option value="">빈 자리 선택</option></select>
+                </div>
+                <button class="btn btn-primary" onclick="movePallet()" style="width:100%;padding:10px;border-radius:6px;font-size:13px;font-weight:600;background:#1a73e8;color:white;border:none;">이동 실행</button>
+            </div>
+            
+            <div class="action-btns">
+                <button class="btn" onclick="viewDetail()">상세보기</button>
+                <button class="btn btn-warning" onclick="openOutboundModal()">출고등록</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="m_0_0_3.html" class="nav-item"><div class="nav-icon">🏠</div>홈</a>
+        <a href="m_3_1_0.html" class="nav-item"><div class="nav-icon">📋</div>주문</a>
+        <a href="m_5_1_1.html" class="nav-item"><div class="nav-icon">🖨️</div>인쇄</a>
+        <a href="m_6_1_1.html" class="nav-item"><div class="nav-icon">📚</div>제본</a>
+        <a href="m_7_1_1.html" class="nav-item"><div class="nav-icon">📦</div>출고</a>
+    </div>
+    
+    <!-- 출고 모달 -->
+    <div class="modal-overlay" id="outboundModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">📤 출고 수량</span><button class="modal-close" onclick="closeModal()">×</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">품목</label><div id="modalItemName" style="font-weight:bold;"></div></div>
+                <div class="form-group"><label class="form-label">현재 재고</label><div id="modalStock" style="color:#1a73e8;font-weight:bold;"></div></div>
+                <div class="form-group"><label class="form-label">출고 수량 *</label><input type="number" class="form-control" id="outboundQty" placeholder="0"></div>
+                <div class="quick-btns">
+                    <button onclick="setQtyPercent(25)">25%</button>
+                    <button onclick="setQtyPercent(50)">50%</button>
+                    <button onclick="setQtyPercent(75)">75%</button>
+                    <button onclick="setQtyPercent(100)">전량</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal()" style="border:1px solid #ddd;background:white;">취소</button>
+                <button class="btn btn-warning" onclick="goToOutbound()" style="background:#ff9800;color:white;border:none;">출고등록</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+let selectedPallet = null, selectedEmpty = null;
+const palletData = {
+    'A-1': { id: '28646', name: '문법 탄탄 Writing', customer: 'Abc출판사', qty: 800, deadline: '2025-02-15', status: 'normal' },
+    'A-2': { id: '28645', name: '한국사 연구방법론', customer: '서울대출판부', qty: 500, deadline: '2025-02-20', status: 'normal' },
+    'A-3': { id: '28638', name: '민법총론 개정판', customer: '법률출판사', qty: 1500, deadline: '2025-01-27', status: 'warning' },
+    'A-4': null, 'A-5': { id: '28641', name: '현대미술 도록', customer: '아트갤러리', qty: 500, deadline: '2025-03-01', status: 'normal' },
+    'A-6': null, 'A-7': { id: '28639', name: '한국어학 연구논집', customer: '가나다학회', qty: 500, deadline: '2025-02-28', status: 'normal' }, 'A-8': null,
+    'B-1': { id: '28644', name: '임상의학 핸드북', customer: '메디헬북스', qty: 1000, deadline: '2025-02-10', status: 'normal' },
+    'B-2': { id: '28643', name: 'AI 프로그래밍 입문', customer: '테크미디어', qty: 1000, deadline: '2026-03-10', status: 'normal' },
+    'B-3': null, 'B-4': { id: '28634', name: '수능특강 국어', customer: '좋은책신사고', qty: 3200, deadline: '2025-02-25', status: 'normal' },
+    'B-5': { id: '28640', name: '2025 교육백서', customer: '교육진흥원', qty: 2500, deadline: '2025-01-08', status: 'critical' },
+    'B-6': null, 'B-7': { id: '28636', name: '고등 영어 독해', customer: '천재교육', qty: 720, deadline: '2025-01-12', status: 'warning' }, 'B-8': null
+};
+
+function initPage() { renderWarehouse(); }
+
+function renderWarehouse() { renderGrid('warehouseA', 'A', 8); renderGrid('warehouseB', 'B', 8); }
+
+function renderGrid(containerId, building, count) {
+    let html = '';
+    for (let i = 1; i <= count; i++) {
+        const loc = building + '-' + i;
+        const pallet = palletData[loc];
+        const isEmpty = !pallet;
+        const isSelectedEmpty = selectedEmpty === loc;
+        const isSelectedPallet = selectedPallet === loc;
+        
+        let cellClass = 'pallet-cell';
+        if (isEmpty) {
+            cellClass += ' empty';
+            if (isSelectedEmpty) cellClass += ' selected';
+        } else {
+            cellClass += ' occupied';
+            if (pallet.status === 'warning') cellClass += ' warning';
+            if (pallet.status === 'critical') cellClass += ' critical';
+            if (isSelectedPallet) cellClass += ' selected';
+        }
+        
+        html += '<div class="' + cellClass + '" onclick="selectCell(\'' + loc + '\')">';
+        html += '<div class="pallet-loc">' + loc + '</div>';
+        if (pallet) {
+            html += '<div class="pallet-info">' + pallet.name.substring(0, 6) + '</div>';
+            html += '<div class="pallet-qty">' + pallet.qty.toLocaleString() + '부</div>';
+            html += '<div class="pallet-status ' + pallet.status + '"></div>';
+        } else {
+            html += '<div class="pallet-info" style="color:#999;">빈 자리</div>';
+        }
+        html += '</div>';
+    }
+    document.getElementById(containerId).innerHTML = html;
+}
+
+function selectCell(loc) {
+    const pallet = palletData[loc];
+    
+    if (!pallet) {
+        // 빈 자리 선택
+        selectedEmpty = loc;
+        selectedPallet = null;
+        renderWarehouse();
+        showEmptyPanel(loc);
+    } else {
+        // 품목 있는 셀 선택
+        selectedPallet = loc;
+        selectedEmpty = null;
+        renderWarehouse();
+        showActionPanel(loc, pallet);
+    }
+}
+
+function showEmptyPanel(loc) {
+    document.getElementById('actionPanel').classList.remove('show');
+    document.getElementById('emptyPanel').classList.add('show');
+    document.getElementById('emptyInfo').innerHTML = '<div class="selected-info-row"><span>위치</span><span style="font-weight:bold;">' + loc + '</span></div><div class="selected-info-row"><span>상태</span><span>빈 자리</span></div>';
+    document.getElementById('emptyPanel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function showActionPanel(loc, pallet) {
+    document.getElementById('emptyPanel').classList.remove('show');
+    document.getElementById('actionPanel').classList.add('show');
+    document.getElementById('selectedInfo').innerHTML = 
+        '<div class="selected-info-row"><span>위치</span><span style="font-weight:bold;">' + loc + '</span></div>' +
+        '<div class="selected-info-row"><span>품목</span><span>' + pallet.name + '</span></div>' +
+        '<div class="selected-info-row"><span>거래처</span><span>' + pallet.customer + '</span></div>' +
+        '<div class="selected-info-row"><span>수량</span><span style="color:#1a73e8;font-weight:bold;">' + pallet.qty.toLocaleString() + '부</span></div>';
+    
+    const emptyLocs = Object.keys(palletData).filter(function(l) { return !palletData[l] && l !== loc; });
+    document.getElementById('moveTarget').innerHTML = '<option value="">빈 자리 선택</option>' + emptyLocs.map(function(l) { return '<option value="' + l + '">' + l + '</option>'; }).join('');
+    document.getElementById('actionPanel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function goToInboundEmpty() {
+    if (!selectedEmpty) return;
+    location.href = 'm_9_2_0.html?location=' + selectedEmpty;
+}
+
+function movePallet() {
+    const targetLoc = document.getElementById('moveTarget').value;
+    if (!targetLoc) { showToast('이동할 위치를 선택하세요'); return; }
+    if (!confirm(selectedPallet + ' → ' + targetLoc + '로 이동?')) return;
+    palletData[targetLoc] = palletData[selectedPallet];
+    palletData[selectedPallet] = null;
+    showToast('이동 완료');
+    selectedPallet = targetLoc;
+    renderWarehouse();
+    showActionPanel(targetLoc, palletData[targetLoc]);
+}
+
+function viewDetail() {
+    if (!selectedPallet) return;
+    const p = palletData[selectedPallet];
+    alert('품목: ' + p.name + '\n제작번호: ' + p.id + '\n거래처: ' + p.customer + '\n수량: ' + p.qty.toLocaleString() + '부\n보관기한: ' + p.deadline);
+}
+
+function openOutboundModal() {
+    if (!selectedPallet) return;
+    const p = palletData[selectedPallet];
+    document.getElementById('modalItemName').textContent = p.name;
+    document.getElementById('modalStock').textContent = p.qty.toLocaleString() + '부';
+    document.getElementById('outboundQty').value = '';
+    document.getElementById('outboundModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('outboundModal').classList.remove('show'); }
+
+function setQtyPercent(percent) {
+    const p = palletData[selectedPallet];
+    if (!p) return;
+    document.getElementById('outboundQty').value = Math.floor(p.qty * percent / 100);
+}
+
+function goToOutbound() {
+    const qty = parseInt(document.getElementById('outboundQty').value);
+    const p = palletData[selectedPallet];
+    if (!qty || qty <= 0) { showToast('수량을 입력하세요'); return; }
+    if (qty > p.qty) { showToast('재고 초과'); return; }
+    const itemData = { id: p.id, name: p.name, customer: p.customer, qty: qty, unit: '부', location: selectedPallet };
+    location.href = 'm_9_3_0.html?item=' + encodeURIComponent(JSON.stringify(itemData));
+}
+
+function showToast(msg) { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.style.opacity = '1'; setTimeout(function() { t.style.opacity = '0'; }, 2000); }
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>

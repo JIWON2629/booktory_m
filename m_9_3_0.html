@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>출고등록 - KSI OSP</title>
+    <link rel="stylesheet" href="./css/mobile-common.css">
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <style>
+        body { padding-bottom: 130px; background: #f5f5f5; }
+        .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: white; }
+        .sub-header { background: white; padding: 10px 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; }
+        .btn-back { background: none; border: none; font-size: 18px; color: #333; padding: 5px; }
+        .sub-header-title { font-size: 17px; font-weight: bold; flex: 1; }
+        .sub-header-actions { display: flex; gap: 6px; align-items: center; }
+        .draft-btn { display: flex; align-items: center; gap: 4px; padding: 5px 8px; border: 1px solid #ddd; background: white; border-radius: 6px; font-size: 12px; color: #666; }
+        .draft-count { background: #ff9800; color: white; font-size: 10px; padding: 2px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
+        .reset-btn { padding: 5px 8px; font-size: 12px; border: 1px solid #ddd; background: white; border-radius: 6px; color: #666; }
+        .tabs { display: flex; background: white; border-bottom: 1px solid #eee; }
+        .tab-btn { flex: 1; padding: 12px 8px; border: none; background: none; font-size: 14px; color: #666; font-weight: 500; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #ff9800; border-bottom-color: #ff9800; }
+        .main-content { margin-top: 95px; padding: 12px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card { background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 12px; }
+        .card-header { padding: 12px 14px; border-bottom: 1px solid #f0f0f0; font-weight: bold; font-size: 15px; background: #fafafa; }
+        .card-body { padding: 12px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; color: #666; margin-bottom: 6px; }
+        .form-control { width: 100%; padding: 11px; border: 1px solid #ddd; border-radius: 6px; font-size: 15px; background: white; box-sizing: border-box; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .addr-row { display: flex; gap: 8px; }
+        .addr-row input { flex: 1; }
+        .addr-row button { padding: 10px 12px; background: #666; color: white; border: none; border-radius: 6px; font-size: 12px; white-space: nowrap; }
+        .addr-actions { display: flex; gap: 6px; margin-top: 8px; }
+        .addr-actions button { flex: 1; padding: 8px; border: 1px solid #ddd; background: white; border-radius: 6px; font-size: 11px; }
+        .addr-actions button.active { background: #e3f2fd; border-color: #1a73e8; color: #1a73e8; }
+        .stock-list { max-height: 180px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; }
+        .stock-item { padding: 10px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .stock-item:last-child { border-bottom: none; }
+        .stock-item:active { background: #f8f8f8; }
+        .stock-item-name { font-weight: 500; font-size: 13px; }
+        .stock-item-qty { font-size: 12px; color: #1a73e8; }
+        .outbound-list { background: white; border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+        .outbound-list-header { padding: 10px 12px; background: #fff3e0; font-weight: bold; font-size: 12px; display: flex; justify-content: space-between; }
+        .outbound-item { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px; }
+        .outbound-item:last-child { border-bottom: none; }
+        .outbound-item-info { flex: 1; min-width: 0; }
+        .outbound-item-title { font-weight: 500; font-size: 13px; }
+        .outbound-item-detail { font-size: 11px; color: #888; }
+        .outbound-item-qty { background: #fff3e0; padding: 3px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; color: #e65100; }
+        .outbound-item-remove { width: 24px; height: 24px; border: none; background: #ffebee; color: #c62828; border-radius: 50%; font-size: 14px; }
+        .fixed-actions { position: fixed; bottom: 56px; left: 0; right: 0; padding: 8px 12px; background: white; border-top: 1px solid #eee; display: flex; gap: 8px; z-index: 90; }
+        .fixed-actions .btn { flex: 1; padding: 12px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid #ddd; background: white; }
+        .fixed-actions .btn-warning { background: #ff9800; color: white; border-color: #ff9800; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; border-top: 1px solid #eee; z-index: 100; height: 56px; }
+        .nav-item { flex: 1; padding: 6px 5px; text-align: center; font-size: 10px; color: #666; text-decoration: none; }
+        .nav-icon { font-size: 18px; margin-bottom: 2px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal-overlay.bottom { align-items: flex-end; }
+        .modal { background: white; width: 90%; max-width: 320px; border-radius: 12px; overflow: hidden; }
+        .modal.bottom-modal { width: 100%; max-width: none; border-radius: 16px 16px 0 0; max-height: 70vh; display: flex; flex-direction: column; }
+        .modal-header { padding: 12px 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 15px; font-weight: bold; }
+        .modal-close { background: none; border: none; font-size: 22px; color: #666; }
+        .modal-body { padding: 15px; flex: 1; overflow-y: auto; }
+        .modal-footer { padding: 12px 15px; border-top: 1px solid #eee; display: flex; gap: 8px; }
+        .modal-footer .btn { flex: 1; padding: 10px; border-radius: 6px; font-weight: 600; font-size: 13px; }
+        .saved-addr-item { padding: 12px; border-bottom: 1px solid #f0f0f0; }
+        .saved-addr-item:active { background: #f8f8f8; }
+        .saved-addr-name { font-weight: 500; margin-bottom: 4px; }
+        .saved-addr-detail { font-size: 12px; color: #888; }
+        .draft-list-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 10px; }
+        .draft-checkbox { width: 20px; height: 20px; border: 2px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+        .draft-checkbox.checked { background: #ff9800; border-color: #ff9800; color: white; }
+        .draft-info { flex: 1; }
+        .draft-title { font-weight: 500; font-size: 13px; }
+        .draft-date { font-size: 11px; color: #888; }
+        .edit-actions { display: none; padding: 10px 15px; background: #f5f5f5; border-top: 1px solid #eee; gap: 8px; }
+        .edit-actions.show { display: flex; }
+        .empty-state { padding: 30px 20px; text-align: center; color: #888; }
+        .empty-icon { font-size: 40px; margin-bottom: 8px; }
+        .toast { position: fixed; bottom: 140px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 6px; z-index: 400; opacity: 0; transition: opacity 0.3s; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="fixed-header">
+        <div class="sub-header">
+            <button class="btn-back" onclick="history.back()">←</button>
+            <div class="sub-header-title">📤 출고등록</div>
+            <div class="sub-header-actions">
+                <button class="draft-btn" onclick="openDraftModal()">저장 <span class="draft-count" id="draftCount">0</span></button>
+                <button class="reset-btn" onclick="resetForm()">초기화</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="product" onclick="switchTab('product')">📦 완제품</button>
+            <button class="tab-btn" data-tab="supply" onclick="switchTab('supply')">🔧 부자재</button>
+            <button class="tab-btn" data-tab="packaging" onclick="switchTab('packaging')">📦 포장재</button>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <!-- 완제품 탭 -->
+        <div class="tab-content active" id="tab-product">
+            <div class="card">
+                <div class="card-header">출고 정보</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">출고일 *</label><input type="date" class="form-control" id="outboundDate"></div>
+                        <div class="form-group"><label class="form-label">담당자 *</label><select class="form-control" id="manager"><option value="">선택</option><option>김물류</option><option>박창고</option><option>이출고</option></select></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">출고유형 *</label><select class="form-control" id="outboundType" onchange="toggleDeliverySection()"><option value="고객출고">고객출고</option><option value="샘플출고">샘플출고</option><option value="내부이동">내부이동</option><option value="폐기">폐기</option></select></div>
+                    <div class="form-group"><label class="form-label">비고</label><textarea class="form-control" id="note" rows="2" placeholder="특이사항 입력"></textarea></div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">출고 품목 선택</div>
+                <div class="card-body">
+                    <div class="form-group"><input type="text" class="form-control" id="productSearch" placeholder="🔍 제작번호 또는 품명 검색" oninput="filterProducts()"></div>
+                    <div class="stock-list" id="productStockList"></div>
+                </div>
+            </div>
+            
+            <div class="card" id="deliveryCard">
+                <div class="card-header">🚚 배송지 정보</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">주소 *</label>
+                        <div class="addr-row">
+                            <input type="text" class="form-control" id="postcode" placeholder="우편번호" readonly>
+                            <button onclick="openPostcode()">주소검색</button>
+                        </div>
+                    </div>
+                    <div class="form-group"><input type="text" class="form-control" id="address" placeholder="기본주소" readonly></div>
+                    <div class="form-group"><input type="text" class="form-control" id="addressDetail" placeholder="상세주소 입력"></div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">수령인 *</label><input type="text" class="form-control" id="receiver" placeholder="수령인명"></div>
+                        <div class="form-group"><label class="form-label">연락처 *</label><input type="tel" class="form-control" id="phone" placeholder="010-0000-0000"></div>
+                    </div>
+                    <div class="addr-actions">
+                        <button onclick="saveAddress()">📍 배송지 저장</button>
+                        <button onclick="openSavedAddrModal()">📋 저장된 배송지</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 부자재 탭 -->
+        <div class="tab-content" id="tab-supply">
+            <div class="card">
+                <div class="card-header">부자재 출고</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">출고일 *</label><input type="date" class="form-control" id="supplyOutDate"></div>
+                        <div class="form-group"><label class="form-label">담당자 *</label><select class="form-control" id="supplyManager"><option value="">선택</option><option>김물류</option><option>박창고</option></select></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">품목 선택</label><div class="stock-list" id="supplyStockList"></div></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 포장재 탭 -->
+        <div class="tab-content" id="tab-packaging">
+            <div class="card">
+                <div class="card-header">포장재 출고</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">출고일 *</label><input type="date" class="form-control" id="packOutDate"></div>
+                        <div class="form-group"><label class="form-label">담당자 *</label><select class="form-control" id="packManager"><option value="">선택</option><option>김물류</option><option>박창고</option></select></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">품목 선택</label><div class="stock-list" id="packStockList"></div></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 출고 목록 -->
+        <div class="outbound-list" id="outboundList" style="display:none;">
+            <div class="outbound-list-header"><span>📋 출고 품목 목록</span><span id="listCount">0건</span></div>
+            <div id="outboundListBody"></div>
+        </div>
+    </div>
+    
+    <div class="fixed-actions">
+        <button class="btn" onclick="saveDraft()">임시저장</button>
+        <button class="btn btn-warning" onclick="submitOutbound()">📤 출고등록</button>
+    </div>
+    
+    <div class="bottom-nav">
+        <a href="m_0_0_3.html" class="nav-item"><div class="nav-icon">🏠</div>홈</a>
+        <a href="m_3_1_0.html" class="nav-item"><div class="nav-icon">📋</div>주문</a>
+        <a href="m_5_1_1.html" class="nav-item"><div class="nav-icon">🖨️</div>인쇄</a>
+        <a href="m_6_1_1.html" class="nav-item"><div class="nav-icon">📚</div>제본</a>
+        <a href="m_7_1_1.html" class="nav-item"><div class="nav-icon">📦</div>출고</a>
+    </div>
+    
+    <!-- 수량 입력 모달 -->
+    <div class="modal-overlay" id="qtyModal">
+        <div class="modal">
+            <div class="modal-header"><span class="modal-title">출고 수량</span><button class="modal-close" onclick="closeModal('qtyModal')">×</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">품목</label><div id="modalItemName" style="font-weight:bold;"></div></div>
+                <div class="form-group"><label class="form-label">현재 재고</label><div id="modalStock" style="color:#1a73e8;"></div></div>
+                <div class="form-group"><label class="form-label">출고 수량 *</label><input type="number" class="form-control" id="modalQty" placeholder="0"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('qtyModal')" style="border:1px solid #ddd;background:white;">취소</button>
+                <button class="btn btn-warning" onclick="confirmAddItem()" style="background:#ff9800;color:white;border:none;">추가</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 저장된 배송지 모달 -->
+    <div class="modal-overlay bottom" id="savedAddrModal">
+        <div class="modal bottom-modal">
+            <div class="modal-header"><span class="modal-title">저장된 배송지</span><button class="modal-close" onclick="closeModal('savedAddrModal')">×</button></div>
+            <div class="modal-body" id="savedAddrList"></div>
+        </div>
+    </div>
+    
+    <!-- 임시저장 모달 -->
+    <div class="modal-overlay bottom" id="draftModal">
+        <div class="modal bottom-modal">
+            <div class="modal-header"><span class="modal-title">임시저장 목록</span><button class="modal-close" onclick="closeModal('draftModal')">×</button></div>
+            <div style="padding:8px 15px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:#888;">총 <span style="color:#ff9800;" id="draftTotalCount">0</span>개 선택됨</span><button id="editBtn" onclick="toggleEditMode()" style="padding:5px 10px;border:1px solid #ddd;background:white;border-radius:5px;font-size:12px;">편집</button></div>
+            <div class="modal-body" id="draftListBody"></div>
+            <div class="edit-actions" id="editActions"><button onclick="deleteAllDrafts()" style="flex:1;padding:10px;border:1px solid #ddd;background:white;border-radius:6px;font-size:13px;">전체 삭제</button><button onclick="deleteSelectedDrafts()" style="flex:1;padding:10px;border:1px solid #ddd;background:white;border-radius:6px;font-size:13px;">선택 삭제</button></div>
+            <div class="modal-footer" id="normalFooter"><button onclick="closeModal('draftModal')" style="flex:1;padding:10px;border:1px solid #ddd;background:white;border-radius:6px;font-size:13px;">닫기</button></div>
+        </div>
+    </div>
+
+<script>
+let currentTab = 'product', outboundList = [], selectedItem = null, drafts = [], editMode = false, selectedDrafts = [], savedAddresses = [];
+const productStock = [
+    { id: '28646', name: '문법 탄탄 Writing 2', customer: 'Abc출판사', stock: 800, unit: '부' },
+    { id: '28645', name: '한국사 연구방법론', customer: '서울대출판부', stock: 500, unit: '부' },
+    { id: '28644', name: '임상의학 핸드북', customer: '메디헬북스', stock: 1000, unit: '부' }
+];
+const supplyStock = [{ id: 'INK-C', name: 'Cyan 잉크', stock: 12, unit: 'kg' },{ id: 'INK-M', name: 'Magenta 잉크', stock: 2, unit: 'kg' }];
+const packStock = [{ id: 'BOX-S', name: '소형 박스', stock: 250, unit: '개' },{ id: 'BOX-M', name: '중형 박스', stock: 45, unit: '개' }];
+
+function initPage() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('outboundDate').value = today;
+    document.getElementById('supplyOutDate').value = today;
+    document.getElementById('packOutDate').value = today;
+    renderStockLists(); loadDrafts(); loadSavedAddresses();
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // 기존 item 파라미터 처리
+    const itemData = urlParams.get('item');
+    if (itemData) { try { const item = JSON.parse(decodeURIComponent(itemData)); if (item.id) { outboundList.push({ ...item, outQty: item.qty || item.stock }); renderOutboundList(); } } catch(e) {} }
+    
+    // 단일 품목 추가 (addItem)
+    const addItemData = urlParams.get('addItem');
+    if (addItemData) {
+        try {
+            const item = JSON.parse(decodeURIComponent(addItemData));
+            if (item.id) {
+                outboundList.push({ id: item.id, name: item.name, customer: item.customer || '', stock: item.stock, unit: item.unit, outQty: 1, type: item.customer ? 'product' : 'supply' });
+                renderOutboundList();
+                showToast(item.name + ' 추가됨');
+            }
+        } catch(e) {}
+    }
+    
+    // 다중 품목 추가 (bulkItems)
+    const bulkItemsData = urlParams.get('bulkItems');
+    if (bulkItemsData) {
+        try {
+            const items = JSON.parse(decodeURIComponent(bulkItemsData));
+            items.forEach(function(item) {
+                outboundList.push({ id: item.id, name: item.name, customer: item.customer || '', stock: item.stock, unit: item.unit, outQty: 1, type: item.customer ? 'product' : 'supply' });
+            });
+            renderOutboundList();
+            showToast(items.length + '건 품목 추가됨');
+        } catch(e) {}
+    }
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.tab === tab); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.toggle('active', c.id === 'tab-' + tab); });
+}
+
+function toggleDeliverySection() { document.getElementById('deliveryCard').style.display = document.getElementById('outboundType').value === '고객출고' ? 'block' : 'none'; }
+
+// 카카오 우편번호 API
+function openPostcode() {
+    new daum.Postcode({
+        oncomplete: function(data) {
+            // 우편번호와 주소 정보를 해당 필드에 넣는다.
+            document.getElementById('postcode').value = data.zonecode;
+            document.getElementById('address').value = data.roadAddress || data.jibunAddress;
+            // 커서를 상세주소 필드로 이동한다.
+            document.getElementById('addressDetail').focus();
+        }
+    }).open();
+}
+
+// 배송지 저장/불러오기
+function loadSavedAddresses() { try { savedAddresses = JSON.parse(localStorage.getItem('savedAddresses') || '[]'); } catch(e) { savedAddresses = []; } }
+function saveAddress() {
+    const receiver = document.getElementById('receiver').value.trim();
+    const address = document.getElementById('address').value.trim();
+    if (!receiver || !address) { showToast('수령인과 주소를 입력해주세요'); return; }
+    const addr = { id: Date.now(), receiver: receiver, postcode: document.getElementById('postcode').value, address: address, detail: document.getElementById('addressDetail').value, phone: document.getElementById('phone').value };
+    savedAddresses = savedAddresses.filter(function(a) { return !(a.receiver === receiver && a.address === address); });
+    savedAddresses.unshift(addr);
+    localStorage.setItem('savedAddresses', JSON.stringify(savedAddresses));
+    showToast('배송지가 저장되었습니다');
+}
+function openSavedAddrModal() {
+    loadSavedAddresses();
+    if (savedAddresses.length === 0) { document.getElementById('savedAddrList').innerHTML = '<div class="empty-state"><div class="empty-icon">📍</div><div>저장된 배송지가 없습니다</div></div>'; }
+    else { document.getElementById('savedAddrList').innerHTML = savedAddresses.map(function(a) { return '<div class="saved-addr-item" onclick="selectAddress(' + a.id + ')"><div class="saved-addr-name">' + a.receiver + ' · ' + a.phone + '</div><div class="saved-addr-detail">' + a.address + ' ' + a.detail + '</div></div>'; }).join(''); }
+    document.getElementById('savedAddrModal').classList.add('show');
+}
+function selectAddress(id) {
+    const addr = savedAddresses.find(function(a) { return a.id === id; });
+    if (addr) { document.getElementById('postcode').value = addr.postcode; document.getElementById('address').value = addr.address; document.getElementById('addressDetail').value = addr.detail; document.getElementById('receiver').value = addr.receiver; document.getElementById('phone').value = addr.phone; }
+    closeModal('savedAddrModal'); showToast('배송지가 적용되었습니다');
+}
+
+function renderStockLists() { renderProductStock(); renderSupplyStock(); renderPackStock(); }
+function renderProductStock(filter) {
+    const list = document.getElementById('productStockList');
+    const filtered = productStock.filter(function(p) { return !filter || p.id.includes(filter) || p.name.includes(filter); });
+    list.innerHTML = filtered.map(function(item) { return '<div class="stock-item" onclick="openQtyModal(\'' + item.id + '\',\'product\')"><div><div class="stock-item-name">' + item.id + ' | ' + item.name + '</div></div><div class="stock-item-qty">' + item.stock.toLocaleString() + item.unit + '</div></div>'; }).join('');
+}
+function renderSupplyStock() { document.getElementById('supplyStockList').innerHTML = supplyStock.map(function(item) { return '<div class="stock-item" onclick="openQtyModal(\'' + item.id + '\',\'supply\')"><div class="stock-item-name">' + item.name + '</div><div class="stock-item-qty">' + item.stock + item.unit + '</div></div>'; }).join(''); }
+function renderPackStock() { document.getElementById('packStockList').innerHTML = packStock.map(function(item) { return '<div class="stock-item" onclick="openQtyModal(\'' + item.id + '\',\'packaging\')"><div class="stock-item-name">' + item.name + '</div><div class="stock-item-qty">' + item.stock + item.unit + '</div></div>'; }).join(''); }
+function filterProducts() { renderProductStock(document.getElementById('productSearch').value.trim()); }
+
+function openQtyModal(itemId, type) {
+    let item;
+    if (type === 'product') item = productStock.find(function(p) { return p.id === itemId; });
+    else if (type === 'supply') item = supplyStock.find(function(p) { return p.id === itemId; });
+    else item = packStock.find(function(p) { return p.id === itemId; });
+    if (!item) return;
+    selectedItem = { ...item, type: type };
+    document.getElementById('modalItemName').textContent = item.name;
+    document.getElementById('modalStock').textContent = item.stock + item.unit;
+    document.getElementById('modalQty').value = '';
+    document.getElementById('qtyModal').classList.add('show');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function confirmAddItem() {
+    const qty = parseInt(document.getElementById('modalQty').value);
+    if (!qty || qty <= 0) { showToast('수량을 입력해주세요'); return; }
+    if (qty > selectedItem.stock) { showToast('재고 초과'); return; }
+    outboundList.push({ ...selectedItem, outQty: qty });
+    closeModal('qtyModal'); renderOutboundList(); showToast('추가되었습니다');
+}
+
+function renderOutboundList() {
+    const c = document.getElementById('outboundListBody'), l = document.getElementById('outboundList');
+    if (outboundList.length === 0) { l.style.display = 'none'; return; }
+    l.style.display = 'block'; document.getElementById('listCount').textContent = outboundList.length + '건';
+    c.innerHTML = outboundList.map(function(item, idx) { 
+        return '<div class="outbound-item">' +
+            '<div class="outbound-item-info"><div class="outbound-item-title">' + item.name + '</div><div class="outbound-item-detail">' + item.id + '</div></div>' +
+            '<div style="display:flex;align-items:center;gap:6px;">' +
+                '<button onclick="changeOutQty(' + idx + ',-1)" style="width:24px;height:24px;border:1px solid #ddd;background:#f5f5f5;border-radius:4px;font-size:14px;">-</button>' +
+                '<input type="number" value="' + (item.outQty || item.qty) + '" onchange="updateOutQty(' + idx + ',this.value)" style="width:50px;text-align:center;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:13px;">' +
+                '<span style="font-size:12px;color:#888;">' + item.unit + '</span>' +
+                '<button onclick="changeOutQty(' + idx + ',1)" style="width:24px;height:24px;border:1px solid #ddd;background:#f5f5f5;border-radius:4px;font-size:14px;">+</button>' +
+            '</div>' +
+            '<button class="outbound-item-remove" onclick="removeItem(' + idx + ')">×</button>' +
+        '</div>'; 
+    }).join('');
+}
+function changeOutQty(idx, delta) {
+    var newQty = (outboundList[idx].outQty || outboundList[idx].qty || 1) + delta;
+    if (newQty < 1) newQty = 1;
+    if (outboundList[idx].stock && newQty > outboundList[idx].stock) { showToast('재고 초과'); return; }
+    outboundList[idx].outQty = newQty;
+    renderOutboundList();
+}
+function updateOutQty(idx, val) {
+    var newQty = parseInt(val) || 1;
+    if (newQty < 1) newQty = 1;
+    if (outboundList[idx].stock && newQty > outboundList[idx].stock) { showToast('재고 초과'); newQty = outboundList[idx].stock; }
+    outboundList[idx].outQty = newQty;
+    renderOutboundList();
+}
+function removeItem(idx) { outboundList.splice(idx, 1); renderOutboundList(); }
+function resetForm() { if (!confirm('초기화?')) return; outboundList = []; renderOutboundList(); showToast('초기화'); }
+
+// 임시저장
+function loadDrafts() { try { drafts = JSON.parse(localStorage.getItem('outboundDrafts') || '[]'); } catch(e) { drafts = []; } document.getElementById('draftCount').textContent = drafts.length; }
+function saveDraft() {
+    if (outboundList.length === 0) { showToast('저장할 항목 없음'); return; }
+    drafts.unshift({ id: Date.now(), date: new Date().toLocaleString('ko-KR'), title: outboundList[0].name + (outboundList.length > 1 ? ' 외 ' + (outboundList.length-1) + '건' : ''), items: [...outboundList] });
+    localStorage.setItem('outboundDrafts', JSON.stringify(drafts)); document.getElementById('draftCount').textContent = drafts.length; showToast('임시저장 완료');
+}
+function openDraftModal() { editMode = false; selectedDrafts = []; renderDraftList(); document.getElementById('draftModal').classList.add('show'); document.getElementById('editActions').classList.remove('show'); document.getElementById('normalFooter').style.display = 'flex'; document.getElementById('editBtn').textContent = '편집'; }
+function renderDraftList() {
+    document.getElementById('draftTotalCount').textContent = selectedDrafts.length;
+    if (drafts.length === 0) { document.getElementById('draftListBody').innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div><div>임시저장된 품목이 없습니다</div></div>'; return; }
+    document.getElementById('draftListBody').innerHTML = drafts.map(function(d) { const isSel = selectedDrafts.includes(d.id); return '<div class="draft-list-item" onclick="' + (editMode ? 'toggleDraftSelection(' + d.id + ')' : 'loadDraft(' + d.id + ')') + '">' + (editMode ? '<div class="draft-checkbox ' + (isSel ? 'checked' : '') + '">' + (isSel ? '✓' : '') + '</div>' : '') + '<div class="draft-info"><div class="draft-title">' + d.title + '</div><div class="draft-date">' + d.date + '</div></div></div>'; }).join('');
+}
+function toggleEditMode() { editMode = !editMode; selectedDrafts = []; document.getElementById('editBtn').textContent = editMode ? '완료' : '편집'; document.getElementById('editActions').classList.toggle('show', editMode); document.getElementById('normalFooter').style.display = editMode ? 'none' : 'flex'; renderDraftList(); }
+function toggleDraftSelection(id) { const idx = selectedDrafts.indexOf(id); if (idx > -1) selectedDrafts.splice(idx, 1); else selectedDrafts.push(id); renderDraftList(); }
+function deleteAllDrafts() { if (!confirm('모두 삭제?')) return; drafts = []; localStorage.setItem('outboundDrafts', '[]'); document.getElementById('draftCount').textContent = 0; renderDraftList(); }
+function deleteSelectedDrafts() { if (!selectedDrafts.length) return; drafts = drafts.filter(function(d) { return !selectedDrafts.includes(d.id); }); selectedDrafts = []; localStorage.setItem('outboundDrafts', JSON.stringify(drafts)); document.getElementById('draftCount').textContent = drafts.length; renderDraftList(); }
+function loadDraft(id) { const d = drafts.find(function(x) { return x.id === id; }); if (d) { outboundList = d.items || []; renderOutboundList(); closeModal('draftModal'); showToast('불러옴'); } }
+
+function submitOutbound() { if (!outboundList.length) { showToast('품목 추가 필요'); return; } if (!confirm(outboundList.length + '건 출고?')) return; showToast('출고 완료!'); outboundList = []; renderOutboundList(); setTimeout(function() { location.href = 'm_9_1_0.html'; }, 800); }
+function showToast(msg) { let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); } t.textContent = msg; t.style.opacity = '1'; setTimeout(function() { t.style.opacity = '0'; }, 2000); }
+document.addEventListener('DOMContentLoaded', initPage);
+</script>
+</body>
+</html>

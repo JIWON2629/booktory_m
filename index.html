@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KSI OSP - 모바일</title>
+    
+    <!-- PWA 메타태그 -->
+    <meta name="theme-color" content="#1a5dad">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KSI 재고">
+    <meta name="application-name" content="KSI OSP">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- PWA 매니페스트 -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- 파비콘 및 앱 아이콘 -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/android-icon-96x96.png">
+    
+    <link rel="stylesheet" href="./css/mobile-common.css">
+    <style>
+        /* 앱 설치 모달 (전체 화면) */
+        .install-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .install-modal.show {
+            display: flex;
+        }
+        .install-modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 30px 25px;
+            max-width: 340px;
+            width: 100%;
+            text-align: center;
+            animation: modalSlideUp 0.3s ease;
+        }
+        @keyframes modalSlideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .install-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #1a5dad, #2980b9);
+            border-radius: 20px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 8px 25px rgba(26,93,173,0.3);
+        }
+        .install-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .install-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        .install-features {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .install-feature {
+            text-align: center;
+        }
+        .install-feature-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .install-feature-text {
+            font-size: 11px;
+            color: #888;
+        }
+        .install-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #1a5dad, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 12px;
+        }
+        .install-btn:active {
+            transform: scale(0.98);
+        }
+        .install-later {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 10px;
+        }
+        
+        /* iOS 설치 안내 */
+        .ios-guide {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            text-align: left;
+        }
+        .ios-guide.show {
+            display: block;
+        }
+        .ios-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .ios-step:last-child {
+            margin-bottom: 0;
+        }
+        .ios-step-num {
+            width: 24px;
+            height: 24px;
+            background: #1a5dad;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .ios-step-text {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.5;
+        }
+        .ios-step-text strong {
+            color: #1a5dad;
+        }
+        .share-icon {
+            display: inline-block;
+            background: #007aff;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* 메인 페이지 스타일 */
+        .welcome-card {
+            background: linear-gradient(135deg, #1a5dad 0%, #2980b9 100%);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+        }
+        .welcome-title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+        .welcome-subtitle { font-size: 13px; opacity: 0.9; }
+        
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 15px;
+        }
+        .quick-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .quick-card:active { transform: scale(0.98); }
+        .quick-card.full-width { grid-column: span 2; }
+        .quick-icon { font-size: 32px; margin-bottom: 10px; }
+        .quick-title { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
+        .quick-desc { font-size: 11px; color: #888; }
+        
+        .quick-card.inventory {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+            color: white;
+        }
+        .quick-card.inventory .quick-desc { color: rgba(255,255,255,0.8); }
+        
+        .section-title { padding: 15px 15px 10px; font-size: 14px; font-weight: bold; color: #333; }
+        
+        .status-cards {
+            display: flex;
+            gap: 10px;
+            padding: 0 15px 15px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .status-card {
+            min-width: 140px;
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .status-card-title { font-size: 12px; color: #888; margin-bottom: 8px; }
+        .status-card-value { font-size: 24px; font-weight: bold; }
+        .status-card-value.blue { color: #1a73e8; }
+        .status-card-value.green { color: #4caf50; }
+        .status-card-value.orange { color: #ff9800; }
+        .status-card-value.red { color: #f44336; }
+        
+        .mypage-dropdown {
+            display: none;
+            position: absolute;
+            top: 52px;
+            right: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 200px;
+            z-index: 150;
+            overflow: hidden;
+        }
+        .mypage-dropdown.show { display: block; }
+        .mypage-dropdown-header { background: #f5f5f5; padding: 20px; text-align: center; }
+        .user-icon-large {
+            width: 50px; height: 50px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .user-icon-large svg { width: 30px; height: 30px; fill: #999; }
+        .mypage-dropdown-menu a {
+            display: block;
+            padding: 14px 20px;
+            color: #333;
+            text-decoration: none;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .mypage-dropdown-menu a:last-child { border-bottom: none; }
+        .mypage-dropdown-menu a:active { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <!-- 앱 설치 모달 (처음 접근 시 표시) -->
+    <div class="install-modal" id="installModal">
+        <div class="install-modal-content">
+            <div class="install-icon">📦</div>
+            <div class="install-title">KSI OSP 재고관리</div>
+            <div class="install-desc">
+                홈 화면에 추가하면<br>
+                앱처럼 빠르게 사용할 수 있습니다
+            </div>
+            <div class="install-features">
+                <div class="install-feature">
+                    <div class="install-feature-icon">⚡</div>
+                    <div class="install-feature-text">빠른 실행</div>
+                </div>
+                <div class="install-feature">
+                    <div class="install-feature-icon">📴</div>
+                    <div class="install-feature-text">오프라인</div>
+                </div>
+                <div class="install-feature">
+                    <div class="install-feature-icon">🔔</div>
+                    <div class="install-feature-text">푸시알림</div>
+                </div>
+            </div>
+            
+            <!-- Android/Desktop 설치 버튼 -->
+            <button class="install-btn" id="installBtn" onclick="installPWA()">
+                📲 홈 화면에 추가
+            </button>
+            
+            <!-- iOS 설치 안내 -->
+            <div class="ios-guide" id="iosGuide">
+                <div class="ios-step">
+                    <div class="ios-step-num">1</div>
+                    <div class="ios-step-text">
+                        화면 하단의 <span class="share-icon">⬆️ 공유</span> 버튼을 탭하세요
+                    </div>
+                </div>
+                <div class="ios-step">
+                    <div class="ios-step-num">2</div>
+                    <div class="ios-step-text">
+                        <strong>"홈 화면에 추가"</strong>를 선택하세요
+                    </div>
+                </div>
+                <div class="ios-step">
+                    <div class="ios-step-num">3</div>
+                    <div class="ios-step-text">
+                        오른쪽 상단 <strong>"추가"</strong>를 탭하세요
+                    </div>
+                </div>
+            </div>
+            
+            <button class="install-later" onclick="closeInstallModal()">
+                나중에 하기
+            </button>
+        </div>
+    </div>
+    
+    <!-- 헤더 -->
+    <div class="header">
+        <div class="header-logo">
+            <span class="ksi">KSI</span>
+            <span class="osp">OSP</span>
+        </div>
+        <div class="header-right">
+            <a href="m_14_1_0.html" class="notification-badge">12</a>
+            <div class="user-icon" onclick="toggleMypage(event)">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            </div>
+            <button class="menu-btn" onclick="MobileApp.openSideMenu()">☰</button>
+        </div>
+        <div class="mypage-dropdown" id="mypageDropdown">
+            <div class="mypage-dropdown-header">
+                <div class="user-icon-large">
+                    <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                </div>
+            </div>
+            <div class="mypage-dropdown-menu">
+                <a href="m_1_1_0.html">정보수정</a>
+                <a href="m_1_2_0.html">My주문</a>
+                <a href="m_1_3_0.html">My매출</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 오프라인 배너 -->
+    <div class="offline-banner">📴 오프라인 모드</div>
+    
+    <!-- 웰컴 카드 -->
+    <div class="welcome-card">
+        <div class="welcome-title">KSI OSP</div>
+        <div class="welcome-subtitle">Order & Stock Platform</div>
+    </div>
+    
+    <!-- 상태 카드 -->
+    <div class="section-title">📊 오늘의 현황</div>
+    <div class="status-cards">
+        <div class="status-card">
+            <div class="status-card-title">신규 주문</div>
+            <div class="status-card-value blue">23건</div>
+        </div>
+        <div class="status-card">
+            <div class="status-card-title">인쇄 대기</div>
+            <div class="status-card-value green">15건</div>
+        </div>
+        <div class="status-card">
+            <div class="status-card-title">제본 진행</div>
+            <div class="status-card-value orange">8건</div>
+        </div>
+        <div class="status-card">
+            <div class="status-card-title">출고 예정</div>
+            <div class="status-card-value red">12건</div>
+        </div>
+    </div>
+    
+    <!-- 퀵 메뉴 -->
+    <div class="section-title">⚡ 빠른 메뉴</div>
+    <div class="quick-grid">
+        <a href="m_3_1_0.html" class="quick-card">
+            <div class="quick-icon">📋</div>
+            <div class="quick-title">주문</div>
+            <div class="quick-desc">주문 조회/등록</div>
+        </a>
+        <a href="m_4_0_0.html" class="quick-card">
+            <div class="quick-icon">🖨️</div>
+            <div class="quick-title">생산</div>
+            <div class="quick-desc">생산현황 확인</div>
+        </a>
+        <a href="m_5_1_1.html" class="quick-card">
+            <div class="quick-icon">📄</div>
+            <div class="quick-title">인쇄</div>
+            <div class="quick-desc">인쇄 작업관리</div>
+        </a>
+        <a href="m_6_1_1.html" class="quick-card">
+            <div class="quick-icon">📚</div>
+            <div class="quick-title">제본</div>
+            <div class="quick-desc">제본 작업관리</div>
+        </a>
+        <a href="m_7_1_1.html" class="quick-card">
+            <div class="quick-icon">🚚</div>
+            <div class="quick-title">출고</div>
+            <div class="quick-desc">출고/배송관리</div>
+        </a>
+        <a href="m_8_0_0.html" class="quick-card">
+            <div class="quick-icon">📜</div>
+            <div class="quick-title">용지</div>
+            <div class="quick-desc">용지 재고관리</div>
+        </a>
+        <a href="m_9_1_0.html" class="quick-card inventory full-width">
+            <div class="quick-icon">📦</div>
+            <div class="quick-title">재고관리</div>
+            <div class="quick-desc">입출고 · 실사 · 파렛트 · 발주요청</div>
+        </a>
+    </div>
+    
+    <!-- 하단 네비게이션 -->
+    <div class="bottom-nav">
+        <a href="index.html" class="nav-item active"><div class="nav-icon">🏠</div>홈</a>
+        <a href="m_3_1_0.html" class="nav-item"><div class="nav-icon">📋</div>주문</a>
+        <a href="m_5_1_1.html" class="nav-item"><div class="nav-icon">🖨️</div>인쇄</a>
+        <a href="m_6_1_1.html" class="nav-item"><div class="nav-icon">📚</div>제본</a>
+        <a href="m_7_1_1.html" class="nav-item"><div class="nav-icon">📦</div>출고</a>
+    </div>
+    
+    <!-- 사이드 메뉴 -->
+    <div class="side-menu-overlay" id="sideMenuOverlay" onclick="MobileApp.closeSideMenu()">
+        <div class="side-menu" onclick="event.stopPropagation()">
+            <div class="side-menu-header">
+                <div class="side-menu-logo">
+                    <span class="ksi">KSI</span>
+                    <span class="osp">OSP</span>
+                </div>
+                <button class="side-menu-close" onclick="MobileApp.closeSideMenu()">×</button>
+            </div>
+            <div class="side-menu-list">
+                <a href="m_3_1_0.html" class="side-menu-item">주문</a>
+                <a href="m_4_0_0.html" class="side-menu-item">생산</a>
+                <a href="m_5_1_1.html" class="side-menu-item">인쇄</a>
+                <a href="m_6_1_1.html" class="side-menu-item">제본</a>
+                <a href="m_7_1_1.html" class="side-menu-item">출고</a>
+                <a href="m_8_0_0.html" class="side-menu-item">용지</a>
+                <a href="m_9_1_0.html" class="side-menu-item highlight">재고</a>
+                <a href="m_10_1_0.html" class="side-menu-item">견적</a>
+                <a href="m_11_1_0.html" class="side-menu-item">통계</a>
+                <a href="m_12_1_0.html" class="side-menu-item">매출</a>
+                <a href="m_13_1_0.html" class="side-menu-item">설정</a>
+            </div>
+            <button class="side-menu-logout" onclick="location.href='m_0_0_1.html'">로그아웃</button>
+        </div>
+    </div>
+
+<script src="./js/mobile-common.js"></script>
+<script>
+// 전역 변수
+let deferredPrompt = null;
+
+// iOS 감지
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+// 이미 설치된 상태인지 확인
+function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           window.navigator.standalone === true;
+}
+
+// 설치 모달 표시
+function showInstallModal() {
+    // 이미 설치된 경우 표시하지 않음
+    if (isStandalone()) return;
+    
+    // "나중에" 선택 후 24시간 내 재방문이면 표시하지 않음
+    const dismissed = localStorage.getItem('installDismissed');
+    if (dismissed && Date.now() - parseInt(dismissed) < 86400000) return;
+    
+    const modal = document.getElementById('installModal');
+    const installBtn = document.getElementById('installBtn');
+    const iosGuide = document.getElementById('iosGuide');
+    
+    if (isIOS()) {
+        // iOS: 설치 버튼 대신 안내 표시
+        installBtn.style.display = 'none';
+        iosGuide.classList.add('show');
+    } else if (!deferredPrompt) {
+        // Android/Desktop이지만 설치 프롬프트가 없는 경우
+        installBtn.textContent = '웹에서 계속 사용';
+        installBtn.onclick = closeInstallModal;
+    }
+    
+    modal.classList.add('show');
+}
+
+// 설치 모달 닫기
+function closeInstallModal() {
+    document.getElementById('installModal').classList.remove('show');
+    localStorage.setItem('installDismissed', Date.now().toString());
+}
+
+// PWA 설치 실행
+function installPWA() {
+    if (!deferredPrompt) {
+        closeInstallModal();
+        return;
+    }
+    
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(result) {
+        if (result.outcome === 'accepted') {
+            console.log('PWA 설치됨');
+        }
+        deferredPrompt = null;
+        closeInstallModal();
+    });
+}
+
+// beforeinstallprompt 이벤트 (Android/Desktop)
+window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    console.log('설치 프롬프트 준비됨');
+});
+
+// 설치 완료 감지
+window.addEventListener('appinstalled', function() {
+    console.log('PWA 설치 완료');
+    deferredPrompt = null;
+    closeInstallModal();
+});
+
+// Service Worker 등록
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./sw.js')
+            .then(function(reg) {
+                console.log('SW 등록:', reg.scope);
+            })
+            .catch(function(err) {
+                console.log('SW 등록 실패:', err);
+            });
+    });
+}
+
+// 마이페이지 토글
+function toggleMypage(event) {
+    event.stopPropagation();
+    document.getElementById('mypageDropdown').classList.toggle('show');
+}
+
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('mypageDropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+    }
+});
+
+// 페이지 로드 시 설치 모달 표시
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(showInstallModal, 500);
+});
+</script>
+</body>
+</html>
